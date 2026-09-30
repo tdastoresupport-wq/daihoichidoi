@@ -1,0 +1,33 @@
+@import './lib/fonts.css';
+@import './lib/tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--c-stage-950);
+  color: var(--c-ink-100);
+  font-family: var(--f-body);
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--c-gold-400);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}

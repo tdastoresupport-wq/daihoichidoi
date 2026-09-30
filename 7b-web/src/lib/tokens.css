@@ -1,0 +1,86 @@
+/* 7B DESIGN TOKENS — V2 Cinematic Stage Edition. Canvas 1920x1080. */
+:root {
+  /* COLOR — Cinematic Stage Night */
+  --c-stage-void: #030712;
+  --c-stage-950: #071126;
+  --c-stage-900: #0d1d45;
+  --c-stage-800: #152b68;
+  --c-stage-700: #1e3d8f;
+  
+  /* ACCENT — Royal Gold */
+  --c-gold-core: #ffc425;
+  --c-gold-400: #ffc425;
+  --c-gold-glow: #ffdd66;
+  --c-gold-500: #e09600;
+  --c-gold-dark: #8a5900;
+  
+  /* LIGHTING — Sapphire Spotlights & Cyan Glow */
+  --c-spot-400: #1a65ff;
+  --c-spot-300: #5796ff;
+  --c-spot-cyan: #00e5ff;
+
+  /* INK / TEXT — High-Contrast Distance Readability */
+  --c-ink-900: #071126;
+  --c-ink-100: #ffffff;
+  --c-ink-200: #e6eeff;
+  --c-ink-300: #9bb1d6;
+  
+  /* GLASS / HUD */
+  --c-glass-surface: rgba(13, 29, 69, 0.72);
+  --c-glass-border: rgba(255, 255, 255, 0.16);
+  --c-glass-glow: rgba(0, 229, 255, 0.25);
+
+  /* STATUS */
+  --c-success: #10b981;
+  --c-danger: #ef4444;
+  --c-warn: #f59e0b;
+
+  /* TYPOGRAPHY */
+  --f-display: 'Paytone One', system-ui, sans-serif;
+  --f-body: 'Bricolage Grotesque', system-ui, sans-serif;
+
+  /* SPACING (@1080p) */
+  --s-1: 8px;
+  --s-2: 16px;
+  --s-3: 24px;
+  --s-4: 32px;
+  --s-6: 48px;
+  --s-8: 64px;
+
+  /* RADIUS */
+  --r-sm: 12px;
+  --r-md: 20px;
+  --r-lg: 32px;
+  --r-xl: 44px;
+  --r-pill: 999px;
+
+  /* SHADOW / GLOW */
+  --sh-card: 0 16px 48px rgba(3, 7, 18, 0.75);
+  --sh-gold: 0 0 40px rgba(255, 196, 37, 0.35);
+  --gl-focus:
+    0 0 0 3px rgba(255, 196, 37, 0.65),
+    0 0 36px rgba(255, 196, 37, 0.45);
+  --gl-cyan:
+    0 0 0 2px rgba(0, 229, 255, 0.6),
+    0 0 30px rgba(0, 229, 255, 0.35);
+
+  /* MOTION */
+  --t-fast: 160ms;
+  --t-base: 280ms;
+  --t-slow: 480ms;
+  --t-scene: 600ms;
+  --e-out: cubic-bezier(0.22, 0.9, 0.28, 1);
+
+  /* LAYER */
+  --z-bg: 0;
+  --z-deco: 1;
+  --z-content: 10;
+  --z-header: 20;
+  --z-dock: 30;
+  --z-overlay: 40;
+  --z-top: 50;
+
+  /* GRID */
+  --safe: 96px;
+  --gutter: 32px;
+}

@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#071126"/>
+      <stop offset="50%" stop-color="#0d1d45"/>
+      <stop offset="100%" stop-color="#050a18"/>
+    </linearGradient>
+    
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="50%" stop-color="#FFC425"/>
+      <stop offset="100%" stop-color="#E59B00"/>
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5F3FC"/>
+      <stop offset="50%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <linearGradient id="laserGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0"/>
+      <stop offset="70%" stop-color="#00E5FF" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="1"/>
+    </linearGradient>
+
+    <radialGradient id="burstGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFC425" stop-opacity="0.7"/>
+      <stop offset="40%" stop-color="#FF9900" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#FFC425" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#0077B6" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="megaGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="blur1"/>
+      <feGaussianBlur stdDeviation="30" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="900" height="650" rx="20" fill="url(#bgGrad)" stroke="#1a3675" stroke-width="3"/>
+  <circle cx="450" cy="325" r="300" fill="url(#burstGlow)" />
+  <circle cx="280" cy="330" r="180" fill="url(#cyanGlow)" />
+
+  <!-- Grid Accents -->
+  <g opacity="0.15" stroke="#00E5FF" stroke-width="1">
+    <line x1="100" y1="100" x2="800" y2="100" stroke-dasharray="8 8"/>
+    <line x1="100" y1="200" x2="800" y2="200" stroke-dasharray="8 8"/>
+    <line x1="100" y1="300" x2="800" y2="300" stroke-dasharray="8 8"/>
+    <line x1="100" y1="400" x2="800" y2="400" stroke-dasharray="8 8"/>
+    <line x1="100" y1="500" x2="800" y2="500" stroke-dasharray="8 8"/>
+    <line x1="200" y1="60" x2="200" y2="580" stroke-dasharray="8 8"/>
+    <line x1="450" y1="60" x2="450" y2="580" stroke-dasharray="8 8"/>
+    <line x1="700" y1="60" x2="700" y2="580" stroke-dasharray="8 8"/>
+  </g>
+
+  <!-- Top Title Banner -->
+  <g transform="translate(450, 60)" text-anchor="middle">
+    <rect x="-240" y="-24" width="480" height="48" rx="24" fill="rgba(13, 29, 69, 0.8)" stroke="#FFC425" stroke-width="1.5" filter="url(#glow)"/>
+    <text y="8" font-family="'Plus Jakarta Sans', sans-serif" font-size="20" font-weight="800" fill="#FFC425" letter-spacing="3">✦ ĐỐ VUI HÌNH ẢNH — 2 TIẾNG ✦</text>
+  </g>
+
+  <!-- LEFT CLUE: BỨT TỐC (Rocket / Speed arrow bursting through barrier) -->
+  <g transform="translate(100, 140)">
+    <!-- Card Frame -->
+    <rect width="320" height="360" rx="16" fill="rgba(10, 24, 58, 0.75)" stroke="#00E5FF" stroke-width="2" filter="url(#glow)"/>
+    
+    <!-- Speed Lines -->
+    <g opacity="0.6" stroke="#00E5FF" stroke-width="3" stroke-linecap="round">
+      <line x1="40" y1="120" x2="160" y2="120" stroke-dasharray="30 15"/>
+      <line x1="20" y1="160" x2="200" y2="160" stroke-dasharray="40 10"/>
+      <line x1="50" y1="200" x2="170" y2="200" stroke-dasharray="25 20"/>
+      <line x1="30" y1="240" x2="190" y2="240" stroke-dasharray="35 15"/>
+    </g>
+
+    <!-- Speed Arrow / Rocket Motif -->
+    <path d="M 120 180 L 220 180 L 260 180 L 210 140 M 260 180 L 210 220" 
+          fill="none" stroke="url(#cyanGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#megaGlow)"/>
+    
+    <!-- Runner / Rocket icon -->
+    <polygon points="170,145 250,180 170,215 190,180" fill="url(#goldGrad)" filter="url(#glow)"/>
+
+    <!-- Clue 1 Label -->
+    <text x="160" y="300" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="1">BỨT TỐC</text>
+    <text x="160" y="330" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="600" fill="#A5F3FC">VƯỢT LÊN PHÍA TRƯỚC</text>
+  </g>
+
+  <!-- CENTER PLUS SIGN -->
+  <g transform="translate(450, 320)">
+    <circle r="36" fill="rgba(255, 196, 37, 0.15)" stroke="#FFC425" stroke-width="2" filter="url(#glow)"/>
+    <path d="M -16 0 L 16 0 M 0 -16 L 0 16" stroke="#FFC425" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- RIGHT CLUE: PHÁ VỠ (Barrier Shivering & Breaking) -->
+  <g transform="translate(480, 140)">
+    <!-- Card Frame -->
+    <rect width="320" height="360" rx="16" fill="rgba(10, 24, 58, 0.75)" stroke="#FFC425" stroke-width="2" filter="url(#glow)"/>
+
+    <!-- Shattered Barrier Graphic -->
+    <g transform="translate(160, 175)">
+      <!-- Central impact blast -->
+      <circle r="30" fill="url(#burstGlow)"/>
+      <polygon points="0,-60 15,-20 50,-35 25,5 60,30 15,25 20,65 -15,20 -50,45 -25,-5 -65,-25 -15,-20" 
+               fill="url(#goldGrad)" filter="url(#megaGlow)" opacity="0.9"/>
+      
+      <!-- Breaking Shards -->
+      <polygon points="-70,-60 -50,-80 -40,-50" fill="#00E5FF" opacity="0.8"/>
+      <polygon points="60,-70 85,-50 55,-40" fill="#FFC425" opacity="0.8"/>
+      <polygon points="70,60 90,40 60,35" fill="#00E5FF" opacity="0.8"/>
+      <polygon points="-65,55 -85,75 -50,70" fill="#FFC425" opacity="0.8"/>
+
+      <!-- Crack Lines -->
+      <path d="M 0 0 L -90 -30 M 0 0 L 80 -40 M 0 0 L 90 50 M 0 0 L -80 60 M 0 0 L 0 -85 M 0 0 L 0 85" 
+            stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+    </g>
+
+    <!-- Clue 2 Label -->
+    <text x="160" y="300" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="1">PHÁ VỠ</text>
+    <text x="160" y="330" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="600" fill="#FED7AA">ĐẬP TAN RÀO CẢN</text>
+  </g>
+
+  <!-- Bottom Question Ribbon -->
+  <g transform="translate(450, 560)" text-anchor="middle">
+    <rect x="-320" y="-30" width="640" height="60" rx="30" fill="rgba(7, 17, 38, 0.95)" stroke="#FFC425" stroke-width="2" filter="url(#megaGlow)"/>
+    <text y="8" font-family="'Plus Jakarta Sans', sans-serif" font-size="24" font-weight="900" fill="#FFFFFF" letter-spacing="1">
+      BỨT TỐC + PHÁ VỠ = <tspan fill="#FFC425" font-weight="900">? ? ? ? (2 TIẾNG)</tspan>
+    </text>
+  </g>
+</svg>

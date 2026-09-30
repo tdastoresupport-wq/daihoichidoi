@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgNineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#071126"/>
+      <stop offset="50%" stop-color="#0a1d48"/>
+      <stop offset="100%" stop-color="#050a18"/>
+    </linearGradient>
+
+    <linearGradient id="goldDotGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="#FFF2A3"/>
+      <stop offset="70%" stop-color="#FFC425"/>
+      <stop offset="100%" stop-color="#E59B00"/>
+    </linearGradient>
+
+    <linearGradient id="cyanLineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5F3FC"/>
+      <stop offset="50%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFC425" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#FF9900" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFC425" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="outerAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#0055FF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="dotGlowFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur1"/>
+      <feGaussianBlur stdDeviation="16" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="lineNeon" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur1"/>
+      <feGaussianBlur stdDeviation="12" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="700" rx="24" fill="url(#bgNineGrad)" stroke="#1a3675" stroke-width="3"/>
+  <circle cx="350" cy="350" r="300" fill="url(#outerAura)"/>
+
+  <!-- Subtle Boundary Reference Box (Shows the 3x3 square boundary to highlight "thinking outside the box") -->
+  <rect x="210" y="210" width="280" height="280" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2" stroke-dasharray="8 8" rx="8"/>
+
+  <!-- Coordinate grid guides -->
+  <g opacity="0.1" stroke="#00E5FF" stroke-width="1">
+    <line x1="70" y1="210" x2="630" y2="210"/>
+    <line x1="70" y1="350" x2="630" y2="350"/>
+    <line x1="70" y1="490" x2="630" y2="490"/>
+    <line x1="210" y1="70" x2="210" y2="630"/>
+    <line x1="350" y1="70" x2="350" y2="630"/>
+    <line x1="490" y1="70" x2="490" y2="630"/>
+  </g>
+
+  <!-- Title Badge Top -->
+  <g transform="translate(350, 48)" text-anchor="middle">
+    <rect x="-220" y="-18" width="440" height="36" rx="18" fill="rgba(13, 29, 69, 0.85)" stroke="#00E5FF" stroke-width="1.5"/>
+    <text y="7" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="800" fill="#00E5FF" letter-spacing="2">✦ CÂU ĐỐ 9 ĐIỂM CỔ ĐIỂN ✦</text>
+  </g>
+
+  <!-- 3x3 DOTS (9 Points) -->
+  <g id="nine-dots-group">
+    <!-- Row 0 -->
+    <!-- D1 -->
+    <g transform="translate(210, 210)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D2 -->
+    <g transform="translate(350, 210)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D3 -->
+    <g transform="translate(490, 210)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Row 1 -->
+    <!-- D4 -->
+    <g transform="translate(210, 350)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D5 (Center) -->
+    <g transform="translate(350, 350)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D6 -->
+    <g transform="translate(490, 350)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Row 2 -->
+    <!-- D7 -->
+    <g transform="translate(210, 490)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D8 -->
+    <g transform="translate(350, 490)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D9 -->
+    <g transform="translate(490, 490)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+  </g>
+
+  <!-- Bottom Hint -->
+  <g transform="translate(350, 640)" text-anchor="middle">
+    <rect x="-260" y="-20" width="520" height="40" rx="20" fill="rgba(10, 24, 58, 0.9)" stroke="#FFC425" stroke-width="1.5"/>
+    <text y="6" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="700" fill="#FFF2A3">
+      Quy tắc: Vẽ đúng 4 đoạn thẳng liên tục không nhấc bút
+    </text>
+  </g>
+</svg>

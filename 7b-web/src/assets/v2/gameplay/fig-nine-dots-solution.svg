@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgSolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#071126"/>
+      <stop offset="50%" stop-color="#0a1d48"/>
+      <stop offset="100%" stop-color="#050a18"/>
+    </linearGradient>
+
+    <linearGradient id="goldDotGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="30%" stop-color="#FFF2A3"/>
+      <stop offset="70%" stop-color="#FFC425"/>
+      <stop offset="100%" stop-color="#E59B00"/>
+    </linearGradient>
+
+    <linearGradient id="solLineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#00E5FF"/>
+    </linearGradient>
+
+    <radialGradient id="dotGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFC425" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#FF9900" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFC425" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="outerAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.3"/>
+      <stop offset="60%" stop-color="#0055FF" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="dotGlowFilter" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur1"/>
+      <feGaussianBlur stdDeviation="16" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="solNeon" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur1"/>
+      <feGaussianBlur stdDeviation="14" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="700" height="700" rx="24" fill="url(#bgSolGrad)" stroke="#1a3675" stroke-width="3"/>
+  <circle cx="350" cy="350" r="300" fill="url(#outerAura)"/>
+
+  <!-- Boundary Reference Box -->
+  <rect x="210" y="210" width="280" height="280" fill="rgba(0, 229, 255, 0.04)" stroke="rgba(255, 255, 255, 0.15)" stroke-width="2" stroke-dasharray="8 8" rx="8"/>
+
+  <!-- Top Title Badge -->
+  <g transform="translate(350, 48)" text-anchor="middle">
+    <rect x="-240" y="-18" width="480" height="36" rx="18" fill="rgba(16, 185, 129, 0.2)" stroke="#10B981" stroke-width="1.5"/>
+    <text y="7" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="800" fill="#34D399" letter-spacing="2">✓ ĐÁP ÁN: 4 ĐOẠN THẲNG LIÊN TỤC</text>
+  </g>
+
+  <!-- 4 CONTINUOUS SOLUTION LINES -->
+  <!-- 
+    Start: D7 (210, 490)
+    Line 1: (210, 490) -> (210, 70) [UP, extends outside]
+    Line 2: (210, 70) -> (630, 490) [DIAG DOWN-RIGHT, through D2(350,210) and D6(490,350), extends outside]
+    Line 3: (630, 490) -> (210, 490) [LEFT, through D9(490,490) and D8(350,490) back to D7]
+    Line 4: (210, 490) -> (490, 210) [DIAG UP-RIGHT, through D5(350,350) to D3(490,210)]
+  -->
+  <g id="solution-path" filter="url(#solNeon)">
+    <!-- Main polyline glow -->
+    <polyline points="210,490 210,70 630,490 210,490 490,210" 
+              fill="none" stroke="#00E5FF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Core white highlight -->
+    <polyline points="210,490 210,70 630,490 210,490 490,210" 
+              fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 3x3 DOTS (9 Points) -->
+  <g id="nine-dots-group">
+    <!-- Row 0 -->
+    <!-- D1 -->
+    <g transform="translate(210, 210)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D2 -->
+    <g transform="translate(350, 210)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D3 -->
+    <g transform="translate(490, 210)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Row 1 -->
+    <!-- D4 -->
+    <g transform="translate(210, 350)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D5 (Center) -->
+    <g transform="translate(350, 350)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D6 -->
+    <g transform="translate(490, 350)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Row 2 -->
+    <!-- D7 (Start point) -->
+    <g transform="translate(210, 490)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D8 -->
+    <g transform="translate(350, 490)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+    <!-- D9 -->
+    <g transform="translate(490, 490)">
+      <circle r="36" fill="url(#dotGlow)"/>
+      <circle r="16" fill="url(#goldDotGrad)" filter="url(#dotGlowFilter)"/>
+      <circle r="6" fill="#FFFFFF"/>
+    </g>
+  </g>
+
+  <!-- STEP NUMBER BADGES (1, 2, 3, 4) -->
+  <!-- Step 1 (Upward line) -->
+  <g transform="translate(160, 270)" text-anchor="middle">
+    <circle r="18" fill="#FFC425" stroke="#071126" stroke-width="2"/>
+    <text y="6" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="900" fill="#071126">①</text>
+  </g>
+
+  <!-- Step 2 (Diagonal line extending down-right) -->
+  <g transform="translate(440, 150)" text-anchor="middle">
+    <circle r="18" fill="#FFC425" stroke="#071126" stroke-width="2"/>
+    <text y="6" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="900" fill="#071126">②</text>
+  </g>
+
+  <!-- Step 3 (Horizontal line going left) -->
+  <g transform="translate(560, 530)" text-anchor="middle">
+    <circle r="18" fill="#FFC425" stroke="#071126" stroke-width="2"/>
+    <text y="6" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="900" fill="#071126">③</text>
+  </g>
+
+  <!-- Step 4 (Diagonal up to D3) -->
+  <g transform="translate(310, 400)" text-anchor="middle">
+    <circle r="18" fill="#FFC425" stroke="#071126" stroke-width="2"/>
+    <text y="6" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="900" fill="#071126">④</text>
+  </g>
+
+  <!-- Bottom Insight -->
+  <g transform="translate(350, 640)" text-anchor="middle">
+    <rect x="-290" y="-20" width="580" height="40" rx="20" fill="rgba(10, 24, 58, 0.95)" stroke="#00E5FF" stroke-width="1.5"/>
+    <text y="6" font-family="'Plus Jakarta Sans', sans-serif" font-size="16" font-weight="800" fill="#00E5FF">
+      💡 Bí quyết: Phải vẽ đường kéo dài RA NGOÀI hình vuông 9 điểm!
+    </text>
+  </g>
+</svg>
