@@ -26,8 +26,13 @@
     else void document.documentElement.requestFullscreen().catch(() => {});
   }
 
-  // Hành động chính mỗi scene (Enter / Space / →).
+  // Chặn bấm đôi vô tình (MC double-tap): primary cách nhau tối thiểu 500ms.
+  // Điều hướng directions-step (←/→) giữ nguyên nhịp nhanh có chủ ý.
+  let lastPrimaryAt = 0;
   function primary(): void {
+    const now = performance.now();
+    if (now - lastPrimaryAt < 500) return;
+    lastPrimaryAt = now;
     audio.unlock();
     switch (pres.scene) {
       case 'opening':
