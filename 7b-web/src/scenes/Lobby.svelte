@@ -15,6 +15,7 @@
   let showGrandReveal = $state(false);
   let grandRevealModal: HTMLElement | null = $state(null);
   let autoFired = false;
+  let pickTimer = 0;
 
   onMount(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -22,14 +23,20 @@
     };
     window.addEventListener('keydown', onKey);
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return () => window.removeEventListener('keydown', onKey);
+      return () => {
+        window.removeEventListener('keydown', onKey);
+        window.clearTimeout(pickTimer);
+      };
     }
     gsap.fromTo(
       '.board .tile',
       { opacity: 0, y: 30, scale: 0.94 },
       { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.04, ease: 'power2.out', overwrite: true }
     );
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.clearTimeout(pickTimer);
+    };
   });
 
   // Grand reveal chỉ tự mở khi đã về board (không giật màn hình lúc đọc đáp án ô 9).
@@ -69,7 +76,8 @@
       );
     }
 
-    window.setTimeout(() => pres.openCell(id), 180);
+    window.clearTimeout(pickTimer);
+    pickTimer = window.setTimeout(() => pres.openCell(id), 180);
   }
 
   function triggerFullMasterView() {

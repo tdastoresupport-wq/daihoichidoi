@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import gsap from 'gsap';
   import { pres } from '../lib/presentation.svelte';
   import { audio } from '../lib/audio.svelte';
@@ -18,6 +19,13 @@
   let tried = $state(false);
   let clipOk = $state<boolean | null>(null);
   let cardEl: HTMLElement | null = $state(null);
+  let rewardCall: gsap.core.Tween | null = null;
+
+  onDestroy(() => {
+    // Không bắn confetti/fanfare sau khi scene đã unmount.
+    rewardCall?.kill();
+    rewardCall = null;
+  });
 
   const cell = $derived(pres.active);
 
@@ -54,7 +62,8 @@
     }
     if (pres.lastResult === 'correct' || pres.lastResult === 'lucky') {
       // ~120ms anticipation, then reward lands together with fanfare.
-      gsap.delayedCall(0.12, () => {
+      rewardCall?.kill();
+      rewardCall = gsap.delayedCall(0.12, () => {
         burst(cardEl as HTMLElement);
         audio.fanfare();
         if (ans) {
