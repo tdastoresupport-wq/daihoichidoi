@@ -34,27 +34,37 @@
     if (cell?.hasAudioClip) void audio.probeClip().then((ok) => (clipOk = ok));
   });
 
-  // Reveal animation
+  // Reveal animation (restrained flip; reduced-motion → instant final state)
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   $effect(() => {
     if (!pres.revealed || !cardEl) return;
     const ans = cardEl.querySelector('.acard, .lucky-reveal');
+    if (reducedMotion) {
+      gsap.set(ans ?? cardEl, { clearProps: 'all', opacity: 1 });
+      return;
+    }
     if (ans) {
       gsap.fromTo(
         ans,
         { rotationX: -60, opacity: 0, y: 24, transformPerspective: 1000 },
-        { rotationX: 0, opacity: 1, y: 0, duration: 0.45, ease: 'back.out(1.3)', overwrite: true }
+        { rotationX: 0, opacity: 1, y: 0, duration: 0.45, ease: 'power3.out', overwrite: true }
       );
     }
     if (pres.lastResult === 'correct' || pres.lastResult === 'lucky') {
-      burst(cardEl);
-      audio.fanfare();
-      if (ans) {
-        gsap.fromTo(
-          ans,
-          { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.9)' },
-          { boxShadow: '0 0 0 36px rgba(16, 185, 129, 0)', duration: 0.55, repeat: 1, ease: 'power2.out' }
-        );
-      }
+      // ~120ms anticipation, then reward lands together with fanfare.
+      gsap.delayedCall(0.12, () => {
+        burst(cardEl as HTMLElement);
+        audio.fanfare();
+        if (ans) {
+          gsap.fromTo(
+            ans,
+            { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.9)' },
+            { boxShadow: '0 0 0 36px rgba(16, 185, 129, 0)', duration: 0.55, repeat: 1, ease: 'power2.out' }
+          );
+        }
+      });
     }
   });
 

@@ -51,18 +51,24 @@
   function pick(el: HTMLElement, id: number): void {
     audio.unlock();
     audio.click();
-    
-    // Mystery artifact selection energy animation
-    gsap.timeline()
-      .to(el, { scale: 0.94, duration: 0.1, ease: 'power2.in' })
-      .to(el, { scale: 1.04, duration: 0.22, ease: 'back.out(1.5)' });
-      
-    gsap.fromTo(
-      el,
-      { boxShadow: '0 0 0 0 rgba(0, 229, 255, 0.95)' },
-      { boxShadow: '0 0 0 35px rgba(0, 229, 255, 0)', duration: 0.38, ease: 'power2.out' }
-    );
-    
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!reduced) {
+      // Focus lock: siblings dim while the chosen artifact charges.
+      const sibs = [...(el.parentElement?.children ?? [])].filter((c) => c !== el);
+      gsap.to(sibs, { opacity: 0.35, duration: 0.18, ease: 'power2.out' });
+      // Mystery artifact selection energy animation
+      gsap.timeline()
+        .to(el, { scale: 0.94, duration: 0.1, ease: 'power2.in' })
+        .to(el, { scale: 1.04, duration: 0.22, ease: 'power2.out' });
+
+      gsap.fromTo(
+        el,
+        { boxShadow: '0 0 0 0 rgba(0, 229, 255, 0.95)' },
+        { boxShadow: '0 0 0 35px rgba(0, 229, 255, 0)', duration: 0.38, ease: 'power2.out' }
+      );
+    }
+
     window.setTimeout(() => pres.openCell(id), 180);
   }
 
@@ -112,6 +118,7 @@
 
   <!-- The 3×3 Mystery Board (frameless — artifacts in the world) -->
   <div class="board-field">
+    <div class="stars" aria-hidden="true"></div>
     <div class="board">
       {#each PUZZLE_CELLS as cell (cell.id)}
         {@const st = pres.status[cell.id - 1]}
@@ -316,6 +323,23 @@
     background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0, 229, 255, 0.07) 0%, transparent 70%);
     pointer-events: none;
   }
+  /* Sparse twinkling dust — 2 layers only, lobby lifecycle */
+  .stars {
+    position: absolute;
+    inset: -40px;
+    pointer-events: none;
+    background-image:
+      radial-gradient(2px 2px at 12% 22%, rgba(255, 255, 255, 0.8), transparent 60%),
+      radial-gradient(1.5px 1.5px at 68% 12%, rgba(255, 221, 102, 0.7), transparent 60%),
+      radial-gradient(2px 2px at 84% 66%, rgba(255, 255, 255, 0.6), transparent 60%),
+      radial-gradient(1.5px 1.5px at 32% 78%, rgba(0, 229, 255, 0.7), transparent 60%),
+      radial-gradient(1.5px 1.5px at 48% 38%, rgba(255, 255, 255, 0.5), transparent 60%);
+    animation: starTwinkle 7s ease-in-out infinite alternate;
+  }
+  @keyframes starTwinkle {
+    from { opacity: 0.35; }
+    to   { opacity: 1; }
+  }
 
   /* ── BOARD GRID (846px x 591px total area) ───────── */
   .board {
@@ -446,6 +470,11 @@
     justify-content: flex-end;
     padding: 8px 10px;
     overflow: hidden;
+    animation: pieceSettle 0.6s var(--e-out);
+  }
+  @keyframes pieceSettle {
+    0% { opacity: 0; transform: scale(1.07); }
+    100% { opacity: 1; transform: scale(1); }
   }
   .piece-overlay {
     position: absolute;
@@ -513,15 +542,15 @@
     z-index: 100;
     background: #000;
     overflow: hidden;
-    animation: fullFadeIn 0.8s var(--e-out);
+    animation: fullFadeIn 1.2s var(--e-out);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 40px var(--safe);
   }
   @keyframes fullFadeIn {
-    from { opacity: 0; transform: scale(1.04); }
-    to   { opacity: 1; transform: scale(1); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   .grand-fullscreen-bg {
@@ -533,6 +562,11 @@
     object-position: center;
     z-index: 1;
     filter: brightness(0.92) contrast(1.05);
+    animation: grandZoom 1.6s var(--e-out);
+  }
+  @keyframes grandZoom {
+    from { transform: scale(1.08); }
+    to   { transform: scale(1); }
   }
 
   .grand-fullscreen-overlay {
