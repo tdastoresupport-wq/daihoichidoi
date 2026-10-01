@@ -197,22 +197,6 @@ export const PUZZLE_CELLS: PuzzleCell[] = [
   }
 ];
 
-// ── OFFICIAL 7B CANDIDATES (EXACT DATA SUPPLIED) ──────────
-export interface Candidate {
-  id: number;
-  number: string;
-  name: string;
-}
-
-export const CANDIDATES_7B: Candidate[] = [
-  { id: 1, number: '01', name: 'PHẠM HỒNG ANH' },
-  { id: 2, number: '02', name: 'NGUYỄN HOÀNG QUANG ANH' },
-  { id: 3, number: '03', name: 'NGUYỄN HUY DŨNG' },
-  { id: 4, number: '04', name: 'NGUYỄN THÁI DƯƠNG' },
-  { id: 5, number: '05', name: 'ĐỖ NGUYỄN AN NHIÊN' },
-  { id: 6, number: '06', name: 'TRƯƠNG GIA TUỆ' }
-];
-
 // ── OFFICIAL 7B ACADEMIC DATA (EXACT DATA SUPPLIED) ───────
 export interface AcademicStat {
   category: string;
@@ -243,6 +227,17 @@ export const RULES: string[] = [
   'Chọn ô số bất kì để mở thử thách',
   'Trả lời đúng để mở 1 mảnh ghép bức tranh bí mật',
   'Mở đủ 9 mảnh ghép để giải mã Bức tranh Bí Mật Chi đội 7B'
+];
+
+// ── ELECTION CANDIDATES (verbatim order/spelling — do not alter) ──
+export const CANDIDATES: string[] = [
+  'PHẠM HỒNG ANH',
+  'NGUYỄN HOÀNG QUANG ANH',
+  'NGUYỄN HUY DŨNG',
+  'NGUYỄN THÁI DƯƠNG',
+  'ĐỖ NGUYỄN AN NHIÊN',
+  'TRƯƠNG GIA TUỆ',
+  'NGUYỄN NGỌC ANH'
 ];
 
 // ── SECRET IMAGE 3x3 PIECE MAPPINGS ──────────────────────
