@@ -12,6 +12,15 @@
 
   const ABSTRACT_GLYPHS = ['◈', '◇', '✦', '⬡', '✧', '◈', '◇', '✦', '⬡'];
 
+// Constellation layout (% of field) — asymmetric, mysterious.
+const NODE_POS = [
+  { x: 27, y: 10 }, { x: 50, y: 6 }, { x: 16, y: 32 },
+  { x: 74, y: 28 }, { x: 48, y: 47 }, { x: 20, y: 68 },
+  { x: 70, y: 66 }, { x: 36, y: 88 }, { x: 60, y: 88 }
+];
+const LINK_PATH =
+  'M421,62 L780,37 L1154,174 L1092,409 L936,546 L562,546 L312,422 L250,198 L749,291 Z';
+
   let showGrandReveal = $state(false);
   let grandRevealModal: HTMLElement | null = $state(null);
   let autoFired = false;
@@ -28,10 +37,16 @@
         window.clearTimeout(pickTimer);
       };
     }
+    // Entrance: title settles, arcs draw, nodes appear one by one.
+    gsap.fromTo(
+      '.shead',
+      { opacity: 0, scale: 1.06 },
+      { opacity: 1, scale: 1, duration: 0.7, ease: 'power2.out', overwrite: true }
+    );
     gsap.fromTo(
       '.board .tile',
-      { opacity: 0, y: 30, scale: 0.94 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.04, ease: 'power2.out', overwrite: true }
+      { opacity: 0, scale: 0.6 },
+      { opacity: 1, scale: 1, duration: 0.5, stagger: 0.09, ease: 'power2.out', overwrite: true }
     );
     return () => {
       window.removeEventListener('keydown', onKey);
@@ -89,27 +104,13 @@
 <SceneHeader kicker="Scene 04 — Thử thách tri thức" title="BỨC TRANH BÍ MẬT — CHI ĐỘI 7B" />
 
 <div class="lobby-stage">
-  <!-- Top Lightweight Instruction Rail & Sleek Progress Track -->
+  <!-- Slim command line: instruction + progress, no pills -->
   <div class="lobby-header-bar">
-    <!-- Compact Instruction Rail -->
-    <div class="instruction-rail">
-      <div class="rail-step">
-        <span class="step-num">01</span>
-        <span class="step-lbl">CHỌN Ô</span>
-      </div>
-      <span class="rail-arrow" aria-hidden="true">›</span>
-      <div class="rail-step">
-        <span class="step-num">02</span>
-        <span class="step-lbl">GIẢI THỬ THÁCH</span>
-      </div>
-      <span class="rail-arrow" aria-hidden="true">›</span>
-      <div class="rail-step">
-        <span class="step-num">03</span>
-        <span class="step-lbl">MỞ MẢNH GHÉP</span>
-      </div>
-    </div>
-
-    <!-- Sleek Dot Progress Track -->
+    <p class="command-line">
+      <span class="cmd-gold">CHỌN 1 TRONG 9 ĐIỂM SÁNG</span>
+      <span class="cmd-sep">·</span>
+      <span>GIẢI THỬ THÁCH → MỞ MẢNH GHÉP</span>
+    </p>
     <div class="progress-track">
       <div class="dots-meter" aria-hidden="true">
         {#each Array(9) as _, i}
@@ -124,16 +125,24 @@
     </div>
   </div>
 
-  <!-- The 3×3 Mystery Board (frameless — artifacts in the world) -->
+  <!-- CONSTELLATION FIELD -->
   <div class="board-field">
     <div class="stars" aria-hidden="true"></div>
+    <svg class="constellation" viewBox="0 0 1560 620" aria-hidden="true">
+      <ellipse class="orbit" cx="780" cy="310" rx="700" ry="255" />
+      <ellipse class="orbit o2" cx="780" cy="310" rx="470" ry="175" />
+      <path class="links" d={LINK_PATH} pathLength="1" />
+    </svg>
+    <div class="secret-silhouette" aria-hidden="true"></div>
     <div class="board">
       {#each PUZZLE_CELLS as cell (cell.id)}
         {@const st = pres.status[cell.id - 1]}
         {@const isDone = st === 'completed'}
         {@const mapping = getPieceMapping(cell.id)}
+        {@const pos = NODE_POS[cell.id - 1]}
         <button
-          class="tile"
+          class="tile node"
+          style={`left:${pos.x}%;top:${pos.y}%`}
           class:opened={st === 'opened'}
           class:done={isDone}
           disabled={isDone}
@@ -141,32 +150,27 @@
           onclick={(e) => pick(e.currentTarget, cell.id)}
           aria-label={isDone ? `Mảnh ghép số ${cell.id} (đã mở)` : `Mảnh ghép số ${cell.id}`}
         >
-          <!-- REVEALED SECRET PIECE LAYER (visible when completed) -->
           {#if isDone}
             <div
               class="piece-revealed-layer"
               style="
                 background-image: url('{secretImg}');
                 background-position: {mapping.bgPosition};
-                background-size: 846px 591px;
+                background-size: 570px 398px;
               "
             >
-              <div class="piece-overlay"></div>
               <div class="piece-badge">
                 <span class="piece-check">✓</span>
                 <span class="piece-id">0{cell.id}</span>
               </div>
             </div>
           {:else}
-            <!-- UNOPENED MYSTERY ARTIFACT (All 9 tiles look 100% identical) -->
             <div class="tile-inner">
               <div class="tile-mystery-view">
                 <span class="mystery-glyph">{ABSTRACT_GLYPHS[cell.id - 1]}</span>
                 <span class="num-id">{String(cell.id).padStart(2, '0')}</span>
-                <span class="mystery-node-label">NODE 0{cell.id}</span>
               </div>
             </div>
-            <div class="tile-bevel"></div>
           {/if}
         </button>
       {/each}
@@ -193,11 +197,7 @@
 
     <!-- Top Celebration Header -->
     <div class="grand-fullscreen-header">
-      <div class="grand-badge">
-        <span class="grand-star">★</span>
-        <span>HOÀN THÀNH 9 / 9 MẢNH GHÉP</span>
-        <span class="grand-star">★</span>
-      </div>
+      <p class="grand-kicker">★ &nbsp;HOÀN THÀNH 9 / 9 MẢNH GHÉP&nbsp; ★</p>
       <h1 class="grand-title">BỨC TRANH BÍ MẬT CHI ĐỘI 7B</h1>
       <p class="grand-sub">“Đoàn kết – Trí tuệ – Sáng tạo – Bứt phá tương lai”</p>
     </div>
@@ -243,34 +243,20 @@
     justify-content: center;
   }
 
-  /* ── INSTRUCTION RAIL (bare text, no pill) ─────── */
-  .instruction-rail {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 4px 2px;
-  }
-  .rail-step {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .step-num {
-    font-family: var(--f-display);
-    font-size: 15px;
-    color: var(--c-spot-cyan);
-    font-weight: 800;
-  }
-  .step-lbl {
-    font-size: 15px;
+  /* ── LOBBY HEADER: slim command line ────────────── */
+  .command-line {
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    color: var(--c-ink-200);
+    letter-spacing: 0.08em;
+    color: var(--c-ink-300);
+    margin: 0;
   }
-  .rail-arrow {
+  .cmd-gold {
+    color: var(--c-gold-400);
+  }
+  .cmd-sep {
+    margin: 0 12px;
     color: rgba(255, 255, 255, 0.3);
-    font-size: 18px;
-    font-weight: 700;
   }
 
   /* ── SLEEK PROGRESS TRACK (bare, no pill) ───────── */
@@ -319,17 +305,73 @@
     letter-spacing: 0.05em;
   }
 
-  /* ── BOARD FIELD (no frame — artifacts float in the world) ── */
+  /* ── CONSTELLATION FIELD ────────────────────────── */
   .board-field {
     position: relative;
-    padding: 12px;
+    width: 1560px;
+    max-width: calc(100% - var(--safe) * 2);
+    aspect-ratio: 1560 / 620;
   }
-  .board-field::before {
-    content: '';
+  .constellation {
     position: absolute;
-    inset: -60px;
-    background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0, 229, 255, 0.07) 0%, transparent 70%);
+    inset: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
+  }
+  .constellation .links {
+    fill: none;
+    stroke: rgba(0, 229, 255, 0.28);
+    stroke-width: 2;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: linkDraw 1.6s var(--e-out) 0.3s forwards;
+  }
+  .constellation .orbit {
+    fill: none;
+    stroke: rgba(111, 165, 255, 0.16);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 14;
+    animation: orbitSpin 40s linear infinite;
+    transform-origin: 780px 310px;
+  }
+  .constellation .o2 {
+    animation-duration: 28s;
+    animation-direction: reverse;
+  }
+  @keyframes linkDraw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes orbitSpin {
+    to { transform: rotate(360deg); }
+  }
+  /* Secret silhouette pulse (abstract, once) */
+  .secret-silhouette {
+    position: absolute;
+    left: 50%;
+    top: 47%;
+    width: 420px;
+    height: 280px;
+    transform: translate(-50%, -50%);
+    background-image: url('../assets/v2/puzzle/secret-image-7b.jpg');
+    background-size: cover;
+    background-position: center;
+    border-radius: 50%;
+    filter: blur(46px) saturate(1.2);
+    opacity: 0;
+    pointer-events: none;
+    animation: silhouettePulse 2.2s var(--e-out) 0.9s;
+  }
+  @keyframes silhouettePulse {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    35% { opacity: 0.5; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.12); }
+  }
+
+  /* ── BOARD: absolute nodes ────────────────────────── */
+  .board {
+    position: absolute;
+    inset: 0;
   }
   /* Sparse twinkling dust — 2 layers only, lobby lifecycle */
   .stars {
@@ -349,33 +391,27 @@
     to   { opacity: 1; }
   }
 
-  /* ── BOARD GRID (846px x 591px total area) ───────── */
-  .board {
-    display: grid;
-    grid-template-columns: repeat(3, 270px);
-    grid-auto-rows: 185px;
-    gap: 18px;
-  }
-
-  /* ── MYSTERY TILE (ENERGY NODE) ─────────────────── */
-  .tile {
-    position: relative;
-    width: 270px;
-    height: 185px;
-    border-radius: var(--r-md);
-    border: 1.5px solid rgba(0, 229, 255, 0.3);
+  /* ── MYSTERY NODE (orb, not card) ───────────────── */
+  .tile.node {
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    margin: -95px 0 0 -95px; /* center on left/top point (GSAP-safe) */
+    border-radius: 50%;
+    border: 2px solid rgba(0, 229, 255, 0.35);
     background: radial-gradient(
-      140% 120% at 50% 10%,
-      rgba(20, 48, 115, 0.82) 0%,
-      rgba(8, 18, 42, 0.95) 100%
+      circle at 50% 32%,
+      rgba(32, 72, 160, 0.9) 0%,
+      rgba(8, 18, 42, 0.96) 72%
     );
     color: #fff;
     cursor: pointer;
     overflow: hidden;
     padding: 0;
     box-shadow:
-      0 12px 28px rgba(0, 0, 0, 0.6),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      0 14px 34px rgba(0, 0, 0, 0.65),
+      inset 0 2px 10px rgba(255, 255, 255, 0.1),
+      0 0 26px rgba(0, 229, 255, 0.12);
     transition:
       transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
       border-color 0.18s ease,
@@ -387,6 +423,7 @@
     content: '';
     position: absolute;
     inset: -100%;
+    border-radius: 50%;
     background: linear-gradient(115deg, transparent 40%, rgba(0, 229, 255, 0.12) 50%, transparent 60%);
     transform: translateX(-100%);
     transition: transform 0.45s ease;
@@ -448,24 +485,10 @@
   }
   .num-id {
     font-family: var(--f-display);
-    font-size: 78px;
+    font-size: 62px;
     line-height: 1;
     color: #fff;
     text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 229, 255, 0.25);
-  }
-  .mystery-node-label {
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    color: var(--c-ink-300);
-    text-transform: uppercase;
-  }
-  .tile-bevel {
-    position: absolute;
-    inset: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    pointer-events: none;
-    border-radius: var(--r-md);
   }
 
   /* ── REVEALED SECRET PIECE LAYER ────────────────── */
@@ -483,12 +506,6 @@
   @keyframes pieceSettle {
     0% { opacity: 0; transform: scale(1.07); }
     100% { opacity: 1; transform: scale(1); }
-  }
-  .piece-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 60%, rgba(7, 17, 38, 0.8) 100%);
-    pointer-events: none;
   }
   .piece-badge {
     position: relative;
@@ -613,25 +630,13 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .grand-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    font-family: var(--f-body);
+  .grand-kicker {
     font-weight: 800;
-    font-size: 18px;
-    letter-spacing: 0.16em;
-    color: var(--c-gold-glow);
-    background: rgba(7, 17, 38, 0.85);
-    border: 1.5px solid var(--c-gold-core);
-    border-radius: var(--r-pill);
-    padding: 6px 24px;
-    box-shadow: 0 4px 20px rgba(255, 196, 37, 0.4);
-    backdrop-filter: blur(16px);
-  }
-  .grand-star {
-    color: var(--c-gold-core);
-    font-size: 18px;
+    font-size: 22px;
+    letter-spacing: 0.2em;
+    color: var(--c-gold-400);
+    margin: 0;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
   }
 
   .grand-title {
@@ -669,21 +674,20 @@
 
   .btn-grand-close {
     font-family: var(--f-body);
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--c-ink-200);
-    background: rgba(7, 17, 38, 0.85);
-    border: 1.5px solid rgba(255, 255, 255, 0.25);
-    border-radius: var(--r-pill);
-    padding: 16px 36px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0;
+    padding: 10px 6px;
     cursor: pointer;
-    backdrop-filter: blur(16px);
-    transition: background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out), color var(--t-fast) var(--e-out);
+    transition: color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out);
   }
   .btn-grand-close:hover {
     color: #fff;
     border-color: var(--c-spot-cyan);
-    background: rgba(13, 29, 69, 0.95);
   }
 
   .btn-grand-next {

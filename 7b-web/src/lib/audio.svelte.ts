@@ -1,9 +1,8 @@
-// Nhạc chờ Đại hội (global) + SFX synth. Không module văn nghệ (Phase 1 loại).
-// File nhạc: public/audio/nhac-cho-dai-hoi.mp3 (copy từ Media1.mp3 ngoài repo).
-// Clip Ô6 (tùy chọn): public/audio/o6-doan-nhac.mp3 — thiếu thì UI báo, không crash.
+// Nhạc chờ Đại hội (global) + SFX synth.
+// V10: Q6 cũ (âm nhạc) đã loại bỏ hoàn toàn — không còn clip nào khác.
+// File nhạc: public/audio/nhac-cho-dai-hoi.mp3.
 
 const WAITING_SRC = 'audio/nhac-cho-dai-hoi.mp3';
-const CLIP6_SRC = 'audio/o6-doan-nhac.mp3';
 
 class AudioEngine {
   muted = $state(false);
@@ -12,7 +11,6 @@ class AudioEngine {
   private el: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
   private unlocked = false;
-  private lastClip: HTMLAudioElement | null = null;
 
   private ensure(): HTMLAudioElement | null {
     if (typeof window === 'undefined') return null;
@@ -81,6 +79,10 @@ class AudioEngine {
   click(): void {
     this.tone(660, 0, 0.08, 'triangle');
   }
+  tick(): void {
+    if (this.muted) return;
+    this.tone(880, 0, 0.05, 'square');
+  }
   correct(): void {
     this.tone(523, 0, 0.12);
     this.tone(784, 0.1, 0.18);
@@ -90,31 +92,6 @@ class AudioEngine {
   }
   fanfare(): void {
     [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * 0.11, 0.16, 'triangle'));
-  }
-
-  // ---- Clip Ô6: chỉ coi là có khi trả về audio thật
-  // (vite preview/dev trả SPA fallback index.html 200 cho path lạ).
-  async probeClip(): Promise<boolean> {
-    try {
-      const r = await fetch(CLIP6_SRC, { method: 'HEAD' });
-      const ct = r.headers.get('content-type') ?? '';
-      return r.ok && ct.startsWith('audio');
-    } catch {
-      return false;
-    }
-  }
-
-  playClip(): HTMLAudioElement | null {
-    try {
-      // Dừng clip cũ trước khi phát mới (tránh chồng tiếng).
-      this.lastClip?.pause();
-      const a = new Audio(CLIP6_SRC);
-      this.lastClip = a;
-      void a.play().catch(() => {});
-      return a;
-    } catch {
-      return null;
-    }
   }
 }
 

@@ -1,99 +1,146 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import gsap from 'gsap';
   import { pres } from '../lib/presentation.svelte';
   import { audio } from '../lib/audio.svelte';
-  import { norm } from '../lib/data';
   import { burst } from '../lib/confetti';
+  import { QUESTION_TIME_S, getPieceMapping } from '../lib/data';
   import Icon from '../components/Icon.svelte';
-
-  // V2 Dedicated Game Assets
-  import figNineDots from '../assets/v2/gameplay/fig-nine-dots.svg';
-  import figNineDotsSolution from '../assets/v2/gameplay/fig-nine-dots-solution.svg';
-  import figAi from '../assets/v2/gameplay/scene-ai-companion.jpg';
-  import figMusic from '../assets/v2/gameplay/scene-music-challenge.jpg';
-  import figRebus from '../assets/v2/gameplay/fig-rebus-but-pha.svg';
+  import secretImg from '../assets/v2/puzzle/secret-image-7b.jpg';
   import figLucky from '../assets/v2/gameplay/puzzle-lucky-chest.jpg';
 
-  let guess = $state('');
-  let tried = $state(false);
-  let clipOk = $state<boolean | null>(null);
-  let cardEl: HTMLElement | null = $state(null);
+  let picked: number | null = $state(null); // locked correct pick
+  let misses: number[] = $state([]); // wrong picks (dimmed, retry others)
+  let timeLeft = $state(QUESTION_TIME_S);
+  let expired = $state(false);
+  let timerId = 0;
+  let lastWhole = QUESTION_TIME_S;
   let rewardCall: gsap.core.Tween | null = null;
+  let cardEl: HTMLElement | null = $state(null);
+
+  const cell = $derived(pres.active);
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function stopTimer(): void {
+    window.clearInterval(timerId);
+    timerId = 0;
+  }
+
+  function startTimer(): void {
+    stopTimer();
+    const t0 = performance.now();
+    timeLeft = QUESTION_TIME_S;
+    expired = false;
+    lastWhole = QUESTION_TIME_S;
+    // Wall-clock based: drain rate is physically correct no matter how many
+    // ticks fire (immune to interval pile-ups).
+    timerId = window.setInterval(() => {
+      const elapsed = (performance.now() - t0) / 1000;
+      timeLeft = Math.max(0, Math.round((QUESTION_TIME_S - elapsed) * 10) / 10);
+      const whole = Math.ceil(timeLeft);
+      if (whole !== lastWhole) {
+        lastWhole = whole;
+        if (whole <= 5 && whole > 0 && !pres.revealed) audio.tick();
+      }
+      if (timeLeft <= 0) {
+        stopTimer();
+        expired = true; // MC vẫn chấm/confirm bình thường — không khóa state.
+      }
+    }, 100);
+  }
+
+  // Reset + timer per question.
+  $effect(() => {
+    picked = null;
+    misses = [];
+    // read cell to track
+    if (cell) {
+      if (cell.kind === 'quiz' && !pres.revealed) startTimer();
+      else stopTimer();
+    }
+    return () => stopTimer();
+  });
 
   onDestroy(() => {
-    // Không bắn confetti/fanfare sau khi scene đã unmount.
+    stopTimer();
     rewardCall?.kill();
     rewardCall = null;
   });
 
-  const cell = $derived(pres.active);
-
-  // Which cells use an image panel on the right
-  const hasImage = $derived(
-    cell !== null &&
-    (cell.id === 4 || cell.kind === 'visual' || cell.kind === 'audio' || cell.kind === 'dots' || cell.kind === 'lucky')
-  );
-
-  $effect(() => {
-    guess = '';
-    tried = false;
-    clipOk = null;
-    if (cell?.hasAudioClip) void audio.probeClip().then((ok) => (clipOk = ok));
+  // Keys 1–4 select answers (no conflict: App ignores digits).
+  function onKey(e: KeyboardEvent): void {
+    if (pres.scene !== 'game' || !cell || cell.kind !== 'quiz' || pres.revealed) return;
+    const n = ['1', '2', '3', '4'].indexOf(e.key);
+    if (n >= 0) select(n);
+  }
+  onMount(() => {
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   });
 
-  // Reveal animation (restrained flip; reduced-motion → instant final state)
-  const reducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  $effect(() => {
-    if (!pres.revealed || !cardEl) return;
-    const ans = cardEl.querySelector('.acard, .lucky-reveal');
-    if (reducedMotion) {
-      gsap.set(ans ?? cardEl, { clearProps: 'all', opacity: 1 });
-      return;
-    }
-    if (ans) {
-      gsap.fromTo(
-        ans,
-        { rotationX: -60, opacity: 0, y: 24, transformPerspective: 1000 },
-        { rotationX: 0, opacity: 1, y: 0, duration: 0.45, ease: 'power3.out', overwrite: true }
-      );
-    }
-    if (pres.lastResult === 'correct' || pres.lastResult === 'lucky') {
-      // ~120ms anticipation, then reward lands together with fanfare.
-      rewardCall?.kill();
-      rewardCall = gsap.delayedCall(0.12, () => {
-        burst(cardEl as HTMLElement);
-        audio.fanfare();
-        if (ans) {
-          gsap.fromTo(
-            ans,
-            { boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.9)' },
-            { boxShadow: '0 0 0 36px rgba(16, 185, 129, 0)', duration: 0.55, repeat: 1, ease: 'power2.out' }
-          );
-        }
+  function flyPiece(): void {
+    if (!cell || reducedMotion || !cardEl) return;
+    try {
+      const from = cardEl.getBoundingClientRect();
+      const prog = document.querySelector('.prog');
+      const to = prog?.getBoundingClientRect();
+      if (!to) return;
+      const m = getPieceMapping(cell.id);
+      const ghost = document.createElement('div');
+      ghost.className = 'fly-piece';
+      ghost.style.backgroundImage = `url('${secretImg}')`;
+      ghost.style.backgroundPosition = m.bgPosition;
+      ghost.style.left = `${from.left + from.width / 2 - 60}px`;
+      ghost.style.top = `${from.top + from.height / 3}px`;
+      document.body.appendChild(ghost);
+      gsap.to(ghost, {
+        left: to.left + to.width / 2 - 60,
+        top: to.top,
+        scale: 0.25,
+        opacity: 0.6,
+        duration: 0.7,
+        ease: 'power2.in',
+        onComplete: () => ghost.remove()
       });
+    } catch {
+      // cosmetic only — never break game flow
     }
-  });
+  }
 
-  function submit(): void {
-    if (!cell?.checkable || pres.revealed) return;
-    tried = true;
-    const ok = (cell.accepted ?? []).map(norm).includes(norm(guess));
-    if (ok) {
+  function celebrate(): void {
+    rewardCall?.kill();
+    rewardCall = gsap.delayedCall(0.12, () => {
+      if (cardEl) burst(cardEl);
+      audio.fanfare();
+    });
+    flyPiece();
+  }
+
+  function select(i: number): void {
+    if (!cell || cell.kind !== 'quiz' || pres.revealed || picked !== null) return;
+    audio.unlock();
+    if (i === cell.correctIndex) {
+      picked = i;
       audio.correct();
       pres.reveal();
       pres.markResult('correct');
+      stopTimer();
+      celebrate();
     } else {
+      misses = [...misses, i];
       audio.wrong();
-      const form = cardEl?.querySelector('.answer-form');
-      if (form) gsap.fromTo(form, { x: 0 }, { x: 14, duration: 0.06, repeat: 3, yoyo: true, overwrite: true });
+      const beam = cardEl?.querySelector(`[data-beam="${i}"]`);
+      if (beam && !reducedMotion) {
+        gsap.fromTo(beam, { x: 0 }, { x: 12, duration: 0.06, repeat: 3, yoyo: true, overwrite: true });
+      }
     }
   }
 
   function revealManual(): void {
     audio.click();
+    stopTimer();
     pres.reveal();
     if (cell?.kind === 'lucky') {
       pres.markResult('lucky');
@@ -105,6 +152,7 @@
   function confirmCorrect(): void {
     audio.correct();
     pres.confirmManualCorrect();
+    celebrate();
   }
 
   function back(): void {
@@ -114,736 +162,596 @@
 </script>
 
 {#if cell}
-  <div class="game-stage" bind:this={cardEl} class:has-image={hasImage} class:is-lucky={cell.kind === 'lucky'}>
+  <div class="game-stage motif-{cell.motif}" bind:this={cardEl} class:is-lucky={cell.kind === 'lucky'}>
+    <div class="motif-bg" aria-hidden="true"></div>
 
-    <!-- ═══ BACKGROUND ACCENT ═══ -->
-    <div class="stage-bg-accent" aria-hidden="true">
-      <div class="accent-top"></div>
-      <div class="accent-bot"></div>
-    </div>
-
-    <!-- ═══ LEFT PANEL: CONTENT ═══ -->
-    <div class="content-panel">
-
-      <!-- Cell badge -->
-      <div class="chip-cell">
-        <span class="cell-num">MẢNH GHÉP 0{cell.id}</span>
-        <span class="chip-sep"></span>
-        <span class="cell-type">{cell.chip}</span>
-      </div>
-
-      {#if cell.kind === 'lucky'}
-        <!-- LUCKY special state -->
-        <div class="lucky-content">
-          <div class="lucky-star-burst" aria-hidden="true">✦</div>
-          <h2 class="lucky-title">ÔI MAY MẮN QUÁ!</h2>
-          <p class="lucky-msg">{cell.question}</p>
-          <div class="lucky-reward">
-            <Icon name="gift" size={52} />
-            <span class="lucky-plus">+1 PHẦN QUÀ</span>
+    {#if cell.kind === 'lucky'}
+      <!-- LUCKY reward world -->
+      <div class="lucky-wrap">
+        <div class="lucky-copy">
+          <div class="chip-row">
+            <span class="chip">MẢNH GHÉP 0{cell.id}</span>
+            <span class="chip dim">{cell.chip}</span>
           </div>
-          <div class="piece-unlocked-banner lucky-banner">
+          <div class="lucky-star-burst" aria-hidden="true">✦</div>
+          <h2 class="lucky-title">Ô MAY MẮN!</h2>
+          <p class="lucky-msg">{cell.question}</p>
+          <p class="reward"><span class="rwicon"><Icon name="gift" size={64} /></span>+1 PHẦN QUÀ</p>
+          <div class="piece-unlocked-banner">
             <span class="banner-icon">🧩</span>
             <span>ĐÃ MỞ KHÓA MẢNH GHÉP 0{cell.id} BỨC TRANH BÍ MẬT!</span>
           </div>
+          <button class="btn-back-board highlight" onclick={back}>‹ QUAY LẠI BẢNG ĐỐ</button>
+        </div>
+        <div class="lucky-art">
+          <img
+            src={figLucky}
+            alt="Rương quà may mắn"
+            class="lucky-img"
+            onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
+          />
+        </div>
+      </div>
+    {:else}
+      <!-- QUIZ game-show floor -->
+      <div class="quiz-floor">
+        <div class="meta-row">
+          <span class="chip">THỬ THÁCH 0{cell.id}</span>
+          <span class="chip dim">{cell.chip}</span>
+          <span class="timer" class:urgent={timeLeft <= 5} class:done={expired || pres.revealed}>
+            {#if pres.revealed}
+              <span>ĐÃ CHỐT</span>
+            {:else if expired}
+              <span>HẾT GIỜ — MC CHỦ ĐỘNG</span>
+            {:else}
+              <span class="t-num">{Math.ceil(timeLeft)}</span><span class="t-unit">GIÂY</span>
+            {/if}
+            <span class="t-bar"><i style={`width:${(timeLeft / QUESTION_TIME_S) * 100}%`}></i></span>
+          </span>
+          <span class="prog-mini">{pres.completedCount} / 9 MẢNH GHÉP</span>
         </div>
 
-      {:else}
-        <!-- QUESTION FLOW -->
+        <p class="prompt">{cell.promptLabel}</p>
+        <h2 class="question">{cell.question}</h2>
 
-        <!-- Level 3: Instruction / prompt -->
-        {#if cell.promptLabel}
-          <p class="prompt-label">{cell.promptLabel}</p>
-        {/if}
-
-        <!-- Level 2: Main question -->
-        <div class="question-block">
-          <p class="question-text">{cell.question}</p>
-        </div>
-
-        <!-- Answer input form -->
-        {#if cell.checkable && !pres.revealed}
-          <form class="answer-form" onsubmit={(e) => { e.preventDefault(); submit(); }}>
-            <input
-              id="answer-input"
-              name="answer"
-              bind:value={guess}
-              placeholder="Nhập câu trả lời… (Enter để chấm)"
-              autocomplete="off"
-              aria-label="Nhập câu trả lời"
-            />
-            <button type="submit" class="btn-submit">
-              <span>CHẤM</span>
-              <span class="check-icon">✓</span>
-            </button>
-          </form>
-          {#if tried && !pres.revealed}
-            <p class="feedback-wrong">Chưa chính xác — thử lại hoặc nhờ MC mở đáp án.</p>
+        {#if !pres.revealed}
+          <div class="beams">
+            {#each cell.options as op, idx}
+              <button
+                class="beam"
+                data-beam={idx}
+                style={`animation-delay:${0.15 + idx * 0.09}s`}
+                disabled={misses.includes(idx)}
+                onclick={() => select(idx)}
+                aria-label={`Đáp án ${op.label}: ${op.text}`}
+              >
+                <span class="marker">{op.label}</span>
+                <span class="beam-text">{op.text}</span>
+                <span class="key-hint">{idx + 1}</span>
+              </button>
+            {/each}
+          </div>
+          {#if misses.length > 0}
+            <p class="retry">Chưa chính xác — THỬ LẠI đáp án khác.</p>
+          {/if}
+          <div class="mc-row">
+            <button class="ghost" onclick={revealManual}>Mở đáp án (MC)</button>
+          </div>
+        {:else}
+          <div class="beams locked">
+            {#each cell.options as op, idx}
+              <div
+                class="beam"
+                class:hit={idx === cell.correctIndex}
+                class:miss={idx !== cell.correctIndex}
+                aria-label={`Đáp án ${op.label}: ${op.text}`}
+              >
+                <span class="marker">{op.label}</span>
+                <span class="beam-text">{op.text}</span>
+              </div>
+            {/each}
+          </div>
+          <p class="expl">{cell.explanation}</p>
+          {#if pres.lastResult === 'correct'}
+            <div class="piece-unlocked-banner">
+              <span class="banner-icon">🧩</span>
+              <span>ĐÃ MỞ KHÓA MẢNH GHÉP 0{cell.id} BỨC TRANH BÍ MẬT!</span>
+            </div>
+          {:else}
+            <div class="mc-decision-box">
+              <span class="mc-label">ĐIỀU KHIỂN MC:</span>
+              <button class="btn-mc-correct" onclick={confirmCorrect}>
+                ✓ XÁC NHẬN ĐÚNG & MỞ MẢNH GHÉP 0{cell.id}
+              </button>
+            </div>
           {/if}
         {/if}
 
-        <!-- Action row -->
-        {#if !pres.revealed}
-          <div class="action-row">
-            {#if !cell.checkable}
-              <button class="btn-primary-glow" onclick={revealManual}>
-                ĐÃ TRÌNH BÀY — MỞ ĐÁP ÁN
-              </button>
-            {:else}
-              <button class="btn-ghost-glow" onclick={revealManual}>
-                Mở đáp án (MC)
-              </button>
-            {/if}
-          </div>
-        {/if}
-
-        <!-- Answer reveal card -->
-        {#if pres.revealed}
-          <div class="acard" class:good={pres.lastResult === 'correct'} class:pass={pres.lastResult === 'presented'}>
-            <div class="acard-header">
-              {#if pres.lastResult === 'correct'}
-                <span class="badge-status success">✓ CHÍNH XÁC!</span>
-              {:else}
-                <span class="badge-status">ĐÁP ÁN CHÍNH THỨC:</span>
-              {/if}
-            </div>
-            <p class="answer-content">{cell.answer}</p>
-            {#if cell.answerNote}
-              <p class="answer-note">{cell.answerNote}</p>
-            {/if}
-
-            {#if pres.lastResult === 'correct'}
-              <!-- Piece Unlocked Success Banner -->
-              <div class="piece-unlocked-banner">
-                <span class="banner-icon">🧩</span>
-                <span>ĐÃ MỞ KHÓA MẢNH GHÉP 0{cell.id} BỨC TRANH BÍ MẬT!</span>
-              </div>
-            {:else}
-              <!-- MC Decision Buttons for Manual Reveal -->
-              <div class="mc-decision-box">
-                <span class="mc-label">ĐIỀU KHIỂN MC:</span>
-                <div class="mc-btn-group">
-                  <button class="btn-mc-correct" onclick={confirmCorrect}>
-                    ✓ XÁC NHẬN ĐÚNG & MỞ MẢNH GHÉP 0{cell.id}
-                  </button>
-                </div>
-              </div>
-            {/if}
-          </div>
-        {/if}
-      {/if}
-
-      <!-- Return button -->
-      <button class="btn-back-board" class:highlight={pres.lastResult === 'correct' || pres.lastResult === 'lucky'} onclick={back}>
-        ‹ QUAY LẠI BẢNG ĐỐ
-      </button>
-    </div>
-
-    <!-- ═══ RIGHT PANEL: VISUAL ═══ -->
-    {#if hasImage && cell.kind !== 'lucky'}
-      <div class="visual-panel">
-        {#if cell.id === 4}
-          <img src={figAi} alt="Trí tuệ nhân tạo và học sinh" class="artwork-fill" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-          <div class="artwork-vignette"></div>
-        {:else if cell.kind === 'visual'}
-          <img src={figRebus} alt="Nhìn hình đoán từ — Bứt Phá" class="artwork-fill rebus-svg" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-          <div class="artwork-vignette"></div>
-        {:else if cell.kind === 'dots'}
-          <div class="svg-scene">
-            <div class="svg-bg-glow" aria-hidden="true"></div>
-            {#if pres.revealed}
-              <img src={figNineDotsSolution} alt="Đáp án câu đố 9 điểm: 4 đoạn thẳng liên tục" class="dots-svg" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-              <p class="svg-caption sol">✓ Kéo 4 đoạn thẳng vượt ra ngoài ranh giới hình vuông.</p>
-            {:else}
-              <img src={figNineDots} alt="Câu đố 9 điểm" class="dots-svg" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-              <p class="svg-caption">Nối tất cả 9 điểm bằng 4 đoạn thẳng không nhấc bút.</p>
-            {/if}
-          </div>
-        {:else if cell.kind === 'audio'}
-          <div class="music-scene">
-            <img src={figMusic} alt="Nghe nhạc đoán tên bài hát" class="artwork-fill" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-            <div class="artwork-vignette"></div>
-            <div class="audio-overlay">
-              {#if clipOk === false}
-                <p class="warn-audio">Chưa có file clip — MC mở nhạc ngoài.</p>
-              {:else}
-                <button class="btn-play-clip" onclick={() => audio.playClip()}>
-                  <span class="eq-waves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-                  <Icon name="note" size={28} />
-                  <span>PHÁT ĐOẠN NHẠC</span>
-                </button>
-              {/if}
-            </div>
-          </div>
-        {/if}
-      </div>
-    {:else if cell.kind === 'lucky'}
-      <!-- Lucky: full-screen chest image on right -->
-      <div class="visual-panel lucky-panel">
-        <img src={figLucky} alt="Rương quà may mắn" class="artwork-fill lucky-img-fill" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-        <div class="lucky-overlay-glow" aria-hidden="true"></div>
+        <button class="btn-back-board" class:highlight={pres.lastResult === 'correct' || pres.lastResult === 'lucky'} onclick={back}>
+          ‹ QUAY LẠI BẢNG ĐỐ
+        </button>
       </div>
     {/if}
-
   </div>
 {/if}
 
 <style>
-  /* ── STAGE ROOT ──────────────────────────────────── */
   .game-stage {
     position: absolute;
     inset: 0;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
     z-index: var(--z-content);
     overflow: hidden;
-  }
-  /* Two-column when there's an image */
-  .game-stage.has-image {
-    grid-template-columns: 1fr 1fr;
-  }
-  .game-stage.is-lucky {
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* ── BACKGROUND ACCENTS ─────────────────────────── */
-  .stage-bg-accent {
+  /* ── MOTIF BACKGROUNDS (one global art direction, varied storytelling) ── */
+  .motif-bg {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 0;
   }
-  .accent-top {
+  .motif-burst .motif-bg {
+    background:
+      radial-gradient(circle at 50% 30%, rgba(255, 197, 49, 0.14) 0%, transparent 45%),
+      repeating-conic-gradient(from 0deg at 50% 30%, rgba(255, 197, 49, 0.05) 0deg 6deg, transparent 6deg 12deg);
+  }
+  .motif-burst .motif-bg::after {
+    content: '%';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 300px;
-    background: radial-gradient(ellipse 80% 100% at 30% 0%, rgba(26, 101, 255, 0.18) 0%, transparent 70%);
+    right: 6%;
+    top: 8%;
+    font-family: var(--f-display);
+    font-size: 380px;
+    line-height: 1;
+    color: rgba(255, 197, 49, 0.07);
   }
-  .accent-bot {
+  .motif-words .motif-bg {
+    background:
+      linear-gradient(180deg, transparent 20%, rgba(46, 124, 246, 0.12) 50%, transparent 80%),
+      radial-gradient(ellipse 60% 45% at 50% 40%, rgba(111, 165, 255, 0.16) 0%, transparent 70%);
+  }
+  .motif-science .motif-bg {
+    background:
+      radial-gradient(circle at 18% 70%, rgba(34, 192, 122, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 82% 25%, rgba(0, 229, 255, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 70% 80%, rgba(34, 192, 122, 0.07) 0%, transparent 35%);
+  }
+  .motif-type .motif-bg::after {
+    content: 'Aa';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 200px;
-    background: radial-gradient(ellipse 60% 100% at 20% 100%, rgba(255, 196, 37, 0.08) 0%, transparent 70%);
-  }
-
-  /* ── LEFT: CONTENT PANEL ────────────────────────── */
-  .content-panel {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 100px var(--safe) 80px 96px;
-    gap: 20px;
-    overflow: hidden;
-  }
-  /* When no image: center the content */
-  .game-stage:not(.has-image):not(.is-lucky) .content-panel {
-    align-items: center;
-    text-align: center;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 100px var(--safe) 80px;
-  }
-
-  .chip-cell {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    background: rgba(13, 29, 69, 0.85);
-    border: 1px solid rgba(255, 196, 37, 0.45);
-    border-radius: var(--r-pill);
-    padding: 10px 30px;
-    backdrop-filter: blur(16px);
-    align-self: flex-start;
-  }
-  .game-stage:not(.has-image):not(.is-lucky) .chip-cell {
-    align-self: center;
-  }
-  .cell-num {
-    font-family: var(--f-display);
-    font-size: 26px;
-    color: var(--c-gold-core);
-  }
-  .chip-sep {
-    width: 1px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.2);
-  }
-  .cell-type {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--c-ink-200);
-  }
-
-  /* ── PROMPT ─────────────────────────────────────── */
-  .prompt-label {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--c-gold-glow);
-    margin: 0;
-    line-height: 1.4;
-  }
-
-  /* ── QUESTION (direct type, gold rule accent — no box) ── */
-  .question-block {
-    border-left: 5px solid var(--c-gold-core);
-    padding: 6px 0 6px 30px;
-  }
-  .game-stage:not(.has-image):not(.is-lucky) .question-block {
-    border-left: none;
-    border-top: 5px solid var(--c-gold-core);
-    padding: 26px 0 0;
-    text-align: center;
-    max-width: 1000px;
-  }
-  .question-text {
-    font-family: var(--f-display);
-    font-size: 38px;
-    line-height: 1.35;
-    color: var(--c-ink-100);
-    margin: 0;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    white-space: pre-line;
-  }
-
-  /* ── ANSWER FORM ────────────────────────────────── */
-  .answer-form {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .game-stage:not(.has-image):not(.is-lucky) .answer-form {
-    justify-content: center;
-  }
-  .answer-form input {
-    font-family: var(--f-body);
-    font-size: 26px;
-    flex: 1;
-    min-width: 320px;
-    max-width: 560px;
-    background: rgba(7, 17, 38, 0.92);
-    border: 2px solid rgba(255, 196, 37, 0.5);
-    border-radius: var(--r-pill);
-    padding: 14px 30px;
-    outline: none;
-    color: #fff;
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
-    transition: border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
-  }
-  .answer-form input:focus {
-    border-color: var(--c-spot-cyan);
-    box-shadow: 0 0 24px rgba(0, 229, 255, 0.35);
-  }
-  .btn-submit {
+    left: 4%;
+    bottom: 2%;
     font-family: var(--f-body);
     font-weight: 800;
+    font-size: 420px;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.045);
+  }
+  .motif-keys .motif-bg {
+    background:
+      linear-gradient(180deg, transparent 55%, rgba(0, 229, 255, 0.06) 100%),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 72px);
+  }
+  .motif-peaks .motif-bg {
+    background:
+      radial-gradient(circle at 78% 18%, rgba(255, 197, 49, 0.2) 0%, transparent 22%),
+      linear-gradient(180deg, transparent 45%, rgba(11, 27, 61, 0.9) 78%);
+  }
+  .motif-peaks .motif-bg::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 34%;
+    background: linear-gradient(180deg, transparent 0%, rgba(6, 15, 38, 0.9) 100%);
+    clip-path: polygon(0 100%, 0 55%, 12% 30%, 24% 62%, 38% 22%, 52% 58%, 66% 28%, 80% 60%, 100% 35%, 100% 100%);
+  }
+  .motif-kinetic .motif-bg {
+    background: radial-gradient(circle at 50% 45%, rgba(255, 197, 49, 0.1) 0%, transparent 50%);
+  }
+  .motif-kinetic .motif-bg::after {
+    content: '?';
+    position: absolute;
+    right: 5%;
+    top: 6%;
+    font-family: var(--f-display);
+    font-size: 400px;
+    line-height: 1;
+    color: rgba(255, 197, 49, 0.08);
+    animation: qPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes qPulse {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+  .motif-lock .motif-bg {
+    background:
+      repeating-radial-gradient(circle at 50% 42%, rgba(0, 229, 255, 0.06) 0 2px, transparent 2px 46px),
+      radial-gradient(circle at 50% 42%, rgba(0, 229, 255, 0.1) 0%, transparent 45%);
+  }
+  .motif-gold .motif-bg {
+    background: radial-gradient(circle at 72% 45%, rgba(255, 197, 49, 0.16) 0%, transparent 55%);
+  }
+
+  /* ── QUIZ FLOOR ── */
+  .quiz-floor {
+    position: relative;
+    z-index: 2;
+    width: 1500px;
+    max-width: calc(100% - var(--safe) * 2);
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 190px 0 130px;
+  }
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .chip {
     font-size: 24px;
-    color: var(--c-ink-900);
-    background: linear-gradient(135deg, var(--c-gold-core), var(--c-gold-500));
-    border: none;
+    font-weight: 700;
+    color: var(--c-ink-100);
+    border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--r-pill);
-    padding: 14px 40px;
-    cursor: pointer;
+    padding: 8px 24px;
+    background: rgba(18, 41, 92, 0.6);
+  }
+  .chip.dim {
+    color: var(--c-gold-400);
+    border-color: rgba(255, 197, 49, 0.5);
+  }
+  .prog-mini {
+    margin-left: auto;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--c-ink-300);
+  }
+  .timer {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 8px 24px rgba(255, 196, 37, 0.4);
-    transition: transform var(--t-fast) var(--e-out);
-    white-space: nowrap;
-  }
-  .btn-submit:hover { transform: translateY(-2px) scale(1.04); }
-
-  .feedback-wrong {
     font-size: 22px;
+    font-weight: 800;
+    color: var(--c-spot-300);
+    letter-spacing: 0.06em;
+  }
+  .t-num {
+    font-family: var(--f-display);
+    font-size: 34px;
+    color: var(--c-ink-100);
+    min-width: 52px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .t-bar {
+    width: 180px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+  }
+  .t-bar i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-spot-400), var(--c-spot-300));
+    border-radius: 4px;
+    transition: width 0.1s linear;
+  }
+  .timer.urgent {
+    color: var(--c-danger);
+  }
+  .timer.urgent .t-num {
+    color: var(--c-danger);
+    animation: tPulse 1s ease-in-out infinite;
+  }
+  @keyframes tPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+  .timer.done {
+    color: var(--c-ink-300);
+  }
+
+  .prompt {
+    font-size: 30px;
     font-weight: 700;
+    color: var(--c-gold-400);
+    margin: 0;
+  }
+  .question {
+    font-family: var(--f-display);
+    font-size: 62px;
+    line-height: 1.25;
+    font-weight: 400;
+    color: var(--c-ink-100);
+    margin: 0;
+    text-wrap: balance;
+    text-shadow: 0 6px 32px rgba(0, 0, 0, 0.8);
+    white-space: pre-line;
+  }
+
+  /* ── ANSWER BEAMS (not buttons-in-boxes) ── */
+  .beams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 48px;
+    margin-top: 8px;
+  }
+  .beam {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid rgba(111, 165, 255, 0.35);
+    padding: 14px 8px 14px 4px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--c-ink-100);
+    animation: beamIn 0.45s var(--e-out) both;
+    transition: border-color var(--t-fast) var(--e-out), transform var(--t-fast) var(--e-out), opacity var(--t-fast) var(--e-out);
+  }
+  @keyframes beamIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .beam:hover:not(:disabled),
+  .beam:focus-visible {
+    border-bottom-color: var(--c-spot-300);
+    transform: translateX(10px);
+  }
+  .beam:hover:not(:disabled) .marker,
+  .beam:focus-visible .marker {
+    background: var(--c-spot-400);
+    border-color: var(--c-spot-300);
+    box-shadow: 0 0 22px rgba(46, 124, 246, 0.55);
+    animation: markerPulse 0.9s ease-in-out infinite;
+  }
+  @keyframes markerPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+  .beam:disabled {
+    cursor: default;
+  }
+  .marker {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid rgba(111, 165, 255, 0.5);
+    font-family: var(--f-display);
+    font-size: 34px;
+    color: var(--c-ink-100);
+    transition: background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
+  }
+  .beam-text {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .key-hint {
+    margin-left: auto;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--c-ink-300);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    padding: 2px 12px;
+  }
+  /* wrong pick: dim + coral marker, others stay live */
+  .beam:disabled:not(.hit) .marker {
+    border-color: var(--c-danger);
+    color: var(--c-danger);
+  }
+  .beam:disabled:not(.hit) {
+    opacity: 0.45;
+    border-bottom-color: rgba(240, 82, 77, 0.4);
+  }
+  .beams.locked .beam {
+    cursor: default;
+    animation: none;
+  }
+  .beams.locked .beam.hit {
+    border-bottom-color: var(--c-gold-400);
+  }
+  .beams.locked .beam.hit .marker {
+    background: var(--c-gold-400);
+    border-color: var(--c-gold-400);
+    color: var(--c-ink-900);
+    box-shadow: 0 0 34px rgba(255, 197, 49, 0.65);
+  }
+  .beams.locked .beam.hit .beam-text {
+    color: var(--c-gold-400);
+    text-shadow: 0 0 26px rgba(255, 197, 49, 0.5);
+  }
+  .beams.locked .beam.miss {
+    opacity: 0.4;
+  }
+  .retry {
+    font-size: 28px;
+    font-weight: 800;
     color: var(--c-danger);
     margin: 0;
   }
+  .expl {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--c-ink-100);
+    border-left: 5px solid var(--c-gold-400);
+    padding-left: 24px;
+    margin: 6px 0 0;
+    max-width: 1200px;
+  }
 
-  /* ── ACTION ROW ─────────────────────────────────── */
-  .action-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .game-stage:not(.has-image):not(.is-lucky) .action-row {
-    justify-content: center;
-  }
-  .btn-primary-glow {
-    font-family: var(--f-body);
-    font-weight: 800;
-    font-size: 24px;
-    letter-spacing: 0.04em;
-    color: var(--c-ink-900);
-    background: linear-gradient(135deg, var(--c-gold-core), var(--c-gold-500));
-    border: none;
-    border-radius: var(--r-pill);
-    padding: 16px 48px;
-    cursor: pointer;
-    box-shadow: 0 10px 30px rgba(255, 196, 37, 0.4);
-    transition: transform var(--t-fast) var(--e-out);
-  }
-  .btn-primary-glow:hover { transform: translateY(-2px) scale(1.03); }
-
-  .btn-ghost-glow {
+  .ghost {
     font-family: var(--f-body);
     font-weight: 700;
-    font-size: 22px;
-    color: var(--c-ink-200);
-    background: rgba(13, 29, 69, 0.6);
-    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    font-size: 26px;
+    color: var(--c-ink-300);
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--r-pill);
     padding: 12px 36px;
     cursor: pointer;
-    transition: background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out);
   }
-  .btn-ghost-glow:hover {
-    background: var(--c-stage-700);
-    border-color: var(--c-gold-core);
-  }
-
-  /* ── ANSWER REVEAL (direct type under gold rule — no box) */
-  .acard {
-    padding: 24px 0 0;
-    border-top: 3px solid var(--c-gold-core);
-  }
-  .game-stage:not(.has-image):not(.is-lucky) .acard {
-    text-align: center;
-    max-width: 1000px;
-  }
-  .acard.good {
-    border-top-color: var(--c-success);
-  }
-  .acard.pass {
-    border-top-color: var(--c-gold-core);
-  }
-  .acard-header {
-    margin-bottom: 10px;
-  }
-  .badge-status {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    color: var(--c-gold-glow);
-    text-transform: uppercase;
-  }
-  .badge-status.success { color: var(--c-success); }
-  .answer-content {
-    font-family: var(--f-display);
-    font-size: 44px;
-    line-height: 1.25;
+  .ghost:hover {
     color: var(--c-ink-100);
-    margin: 0;
-    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    border-color: var(--c-gold-400);
   }
-  .answer-note {
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--c-ink-300);
-    margin: 8px 0 0;
+  .mc-row {
+    margin-top: 4px;
   }
-
-  /* ── BACK BUTTON ────────────────────────────────── */
-  .btn-back-board {
-    font-family: var(--f-body);
-    font-weight: 800;
-    font-size: 20px;
-    color: var(--c-ink-100);
-    background: rgba(13, 29, 69, 0.7);
-    border: 1.5px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--r-pill);
-    padding: 10px 28px;
-    cursor: pointer;
-    backdrop-filter: blur(12px);
-    transition: transform var(--t-fast) var(--e-out), background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
-    align-self: flex-start;
-    margin-top: 8px;
-  }
-  .game-stage:not(.has-image):not(.is-lucky) .btn-back-board {
-    align-self: center;
-  }
-  .btn-back-board:hover {
-    background: var(--c-stage-700);
-    border-color: var(--c-gold-core);
-    transform: translateX(-4px);
-  }
-
-  /* ── LUCKY SPECIAL ──────────────────────────────── */
-  .lucky-content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-  .lucky-star-burst {
-    font-size: 72px;
-    color: var(--c-gold-core);
-    filter: drop-shadow(0 0 24px rgba(255, 196, 37, 0.7));
-    animation: starSpin 6s linear infinite;
-    line-height: 1;
-  }
-  @keyframes starSpin {
-    from { transform: rotate(0deg) scale(1); }
-    50% { transform: rotate(180deg) scale(1.15); }
-    to { transform: rotate(360deg) scale(1); }
-  }
-  .lucky-title {
-    font-family: var(--f-display);
-    font-size: 72px;
-    line-height: 1.1;
-    background: linear-gradient(135deg, #ffffff 0%, var(--c-gold-core) 40%, #ffeaa7 70%, var(--c-gold-500) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    filter: drop-shadow(0 8px 28px rgba(255, 196, 37, 0.4));
-    margin: 0;
-  }
-  .lucky-msg {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--c-ink-200);
-    margin: 0;
-    max-width: 500px;
-    line-height: 1.5;
-    white-space: pre-line;
-  }
-  .lucky-reward {
-    display: inline-flex;
-    align-items: center;
-    gap: 16px;
-    padding: 6px 0;
-    color: var(--c-gold-core);
-    align-self: flex-start;
-  }
-  .lucky-plus {
-    font-family: var(--f-display);
-    font-size: 44px;
-    color: var(--c-gold-glow);
-  }
-
-  /* ── RIGHT: VISUAL PANEL ────────────────────────── */
-  .visual-panel {
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-  }
-  .artwork-fill {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-  }
-  .artwork-vignette {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      rgba(7, 17, 38, 0.7) 0%,
-      rgba(7, 17, 38, 0.1) 40%,
-      transparent 100%
-    );
-  }
-
-  /* SVG (Triangle) scene */
-  .svg-scene {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-    background: radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
-    padding: 40px;
-  }
-  .svg-bg-glow {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(0, 229, 255, 0.12) 0%, transparent 70%);
-  }
-  .dots-svg {
-    max-height: 480px;
-    max-width: 100%;
-    border-radius: var(--r-md);
-    border: 2px solid rgba(0, 229, 255, 0.3);
-    box-shadow:
-      0 16px 48px rgba(0, 0, 0, 0.6),
-      0 0 40px rgba(0, 229, 255, 0.2);
-    position: relative;
-    z-index: 2;
-  }
-  .rebus-svg {
-    object-fit: contain;
-    padding: 30px;
-  }
-  .svg-caption {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--c-ink-300);
-    text-align: center;
-    position: relative;
-    z-index: 2;
-    margin: 0;
-  }
-  .svg-caption.sol {
-    color: var(--c-success);
-  }
-
-  /* Music scene */
-  .music-scene {
-    position: absolute;
-    inset: 0;
-  }
-  .audio-overlay {
-    position: absolute;
-    bottom: 48px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 3;
-  }
-  .btn-play-clip {
-    font-family: var(--f-body);
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: 0.04em;
-    color: var(--c-ink-900);
-    background: linear-gradient(135deg, var(--c-gold-core), var(--c-gold-500));
-    border: none;
-    border-radius: var(--r-pill);
-    padding: 16px 48px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 8px 32px rgba(255, 196, 37, 0.55);
-    transition: transform var(--t-fast) var(--e-out);
-  }
-  .btn-play-clip:hover { transform: translateY(-2px) scale(1.04); }
-
-  .eq-waves {
-    display: inline-flex;
-    align-items: flex-end;
-    gap: 3px;
-    height: 22px;
-  }
-  .eq-waves i {
-    width: 4px;
-    background: var(--c-ink-900);
-    border-radius: 2px;
-    animation: eqAnim 0.8s ease-in-out infinite alternate;
-  }
-  .eq-waves i:nth-child(1) { height: 40%; }
-  .eq-waves i:nth-child(2) { height: 90%; animation-delay: 0.1s; }
-  .eq-waves i:nth-child(3) { height: 60%; animation-delay: 0.2s; }
-  .eq-waves i:nth-child(4) { height: 100%; animation-delay: 0.3s; }
-  .eq-waves i:nth-child(5) { height: 50%; animation-delay: 0.4s; }
-  @keyframes eqAnim {
-    0% { transform: scaleY(0.4); }
-    100% { transform: scaleY(1); }
-  }
-  .warn-audio {
-    background: rgba(239, 68, 68, 0.9);
-    color: #fff;
-    font-weight: 700;
-    font-size: 20px;
-    padding: 10px 28px;
-    border-radius: var(--r-pill);
-  }
-
-  /* Lucky panel */
-  .lucky-panel .lucky-img-fill {
-    object-position: center;
-    transform: scale(1.04);
-    filter: brightness(0.85) saturate(1.2);
-  }
-  .lucky-overlay-glow {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      rgba(7, 17, 38, 0.6) 0%,
-      rgba(255, 196, 37, 0.05) 50%,
-      transparent 100%
-    );
-  }
-
-  /* Piece Unlocked Banner (slim status line) */
-  .piece-unlocked-banner {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-top: 2px solid var(--c-gold-core);
-    padding: 12px 2px 0;
-    margin-top: 14px;
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--c-gold-glow);
-    animation: bannerPop 0.45s var(--e-out);
-  }
-  .piece-unlocked-banner.lucky-banner {
-    margin-top: 20px;
-    justify-content: center;
-  }
-  .banner-icon {
-    font-size: 24px;
-  }
-  @keyframes bannerPop {
-    0% { transform: scale(0.9); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-
-  /* MC Decision Box */
   .mc-decision-box {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
     padding-top: 12px;
     border-top: 1px dashed rgba(255, 255, 255, 0.2);
   }
   .mc-label {
-    font-size: 14px;
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: 0.12em;
-    color: var(--c-spot-cyan);
-  }
-  .mc-btn-group {
-    display: flex;
-    gap: 12px;
+    letter-spacing: 0.1em;
+    color: var(--c-spot-300);
   }
   .btn-mc-correct {
     font-family: var(--f-body);
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 800;
     color: var(--c-ink-900);
     background: linear-gradient(135deg, var(--c-success), #34d399);
     border: none;
     border-radius: var(--r-pill);
-    padding: 10px 24px;
+    padding: 12px 32px;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-    transition: transform var(--t-fast) var(--e-out);
   }
-  .btn-mc-correct:hover {
-    transform: scale(1.04);
-    box-shadow: 0 6px 22px rgba(16, 185, 129, 0.6);
+  .btn-back-board {
+    align-self: flex-start;
+    margin-top: 10px;
+    font-family: var(--f-body);
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--c-ink-100);
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--r-pill);
+    padding: 14px 44px;
+    cursor: pointer;
+  }
+  .btn-back-board:hover {
+    border-color: var(--c-gold-400);
+  }
+  .btn-back-board.highlight {
+    background: var(--c-gold-400);
+    border-color: var(--c-gold-400);
+    color: var(--c-ink-900);
+    font-weight: 800;
   }
 
-  .btn-back-board.highlight {
-    background: linear-gradient(135deg, var(--c-gold-core), var(--c-gold-500));
-    color: var(--c-ink-900);
-    border: none;
+  /* ── Piece fly ghost (reward travel) ── */
+  :global(.fly-piece) {
+    position: fixed;
+    width: 120px;
+    height: 120px;
+    border-radius: 18px;
+    background-size: 846px 591px;
+    background-repeat: no-repeat;
+    border: 3px solid var(--c-gold-400);
+    box-shadow: 0 0 40px rgba(255, 197, 49, 0.8);
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  /* ── LUCKY reward world ── */
+  .lucky-wrap {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 40px;
+    padding: 0 var(--safe);
+  }
+  .lucky-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: flex-start;
+  }
+  .chip-row {
+    display: flex;
+    gap: 12px;
+  }
+  .lucky-star-burst {
+    font-size: 72px;
+    color: var(--c-gold-400);
+    filter: drop-shadow(0 0 24px rgba(255, 197, 49, 0.7));
+    line-height: 1;
+  }
+  .lucky-title {
+    font-family: var(--f-display);
+    font-size: 110px;
+    line-height: 1;
+    margin: 0;
+    background: linear-gradient(135deg, #ffffff 0%, var(--c-gold-400) 45%, #ffeaa7 75%, var(--c-gold-500) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 8px 28px rgba(255, 197, 49, 0.4));
+  }
+  .lucky-msg {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--c-ink-100);
+    margin: 0;
+    white-space: pre-line;
+    line-height: 1.5;
+  }
+  .reward {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 52px;
     font-weight: 800;
-    box-shadow: 0 6px 20px rgba(255, 196, 37, 0.4);
+    color: var(--c-gold-400);
+    margin: 0;
+  }
+  .rwicon {
+    color: var(--c-gold-400);
+    display: inline-flex;
+  }
+  .lucky-art {
+    display: flex;
+    justify-content: center;
+  }
+  .lucky-img {
+    width: min(640px, 100%);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-card), 0 0 80px rgba(255, 197, 49, 0.25);
+  }
+  .piece-unlocked-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 2px solid var(--c-gold-400);
+    padding: 12px 2px 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--c-gold-400);
+  }
+  .banner-icon {
+    font-size: 28px;
   }
 </style>
