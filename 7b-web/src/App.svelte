@@ -6,8 +6,9 @@
   import AudioDock from './components/AudioDock.svelte';
   import ProgressDots from './components/ProgressDots.svelte';
   import Opening from './scenes/Opening.svelte';
-  import Election from './scenes/Election.svelte';
   import Directions from './scenes/Directions.svelte';
+  import Election from './scenes/Election.svelte';
+  import GameIntro from './scenes/GameIntro.svelte';
   import Lobby from './scenes/Lobby.svelte';
   import Gameplay from './scenes/Gameplay.svelte';
   import Closing from './scenes/Closing.svelte';
@@ -48,16 +49,20 @@
         pres.next();
         break;
 
-      case 'election':
-        pres.next();
-        break;
-
       case 'directions':
         if (directionsRef && !directionsRef.step(1)) {
           pres.next();
         } else if (!directionsRef) {
           pres.next();
         }
+        break;
+
+      case 'election':
+        pres.next();
+        break;
+
+      case 'intro':
+        pres.next();
         break;
 
       case 'lobby':
@@ -149,8 +154,9 @@
   // Dynamic label for primary dock button
   let dockPrimaryText = $derived.by(() => {
     if (pres.scene === 'opening') return 'BẮT ĐẦU →';
-    if (pres.scene === 'election') return 'TIẾP TỤC →';
     if (pres.scene === 'directions') return 'TIẾP →';
+    if (pres.scene === 'election') return 'VÀO PHẦN TRÒ CHƠI →';
+    if (pres.scene === 'intro') return 'VÀO BẢNG CHỌN Ô →';
     if (pres.scene === 'lobby') {
       return pres.completedCount === 9 ? 'XEM BỨC TRANH 🌟' : 'CHỌN Ô SỐ';
     }
@@ -230,10 +236,12 @@
       {#key pres.scene}
         {#if pres.scene === 'opening'}
           <Opening />
-        {:else if pres.scene === 'election'}
-          <Election />
         {:else if pres.scene === 'directions'}
           <Directions bind:this={directionsRef} />
+        {:else if pres.scene === 'election'}
+          <Election />
+        {:else if pres.scene === 'intro'}
+          <GameIntro />
         {:else if pres.scene === 'lobby'}
           <Lobby />
         {:else if pres.scene === 'game'}

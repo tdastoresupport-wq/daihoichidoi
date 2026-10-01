@@ -222,17 +222,18 @@ export interface AcademicStat {
 }
 
 export const ACADEMIC_STATS_7B: AcademicStat[] = [
-  { category: 'TỐT', count: 30, countDisplay: '30', unit: 'HS' },
-  { category: 'KHÁ', count: 18, countDisplay: '18', unit: 'HS' },
+  { category: 'XUẤT SẮC', count: 2, countDisplay: '02', unit: 'HS' },
+  { category: 'TỐT', count: 26, countDisplay: '26', unit: 'HS' },
+  { category: 'KHÁ', count: 25, countDisplay: '25', unit: 'HS' },
   { category: 'ĐẠT', count: 3, countDisplay: '03', unit: 'HS' }
 ];
 
-export const TOTAL_STUDENTS_7B = 51;
+export const TOTAL_STUDENTS_7B = 56;
 
 // ── DIRECTIONS (5 phương hướng hoạt động) ─────────────────
 export const DIRECTIONS: string[] = [
-  'HỌC TẬP CHỦ ĐỘNG — ỨNG DỤNG AI',
-  'TIẾNG ANH — MỖI NGÀY MỘT BƯỚC TIẾN',
+  'HỌC TẬP CHỦ ĐỘNG – ỨNG DỤNG AI',
+  'TIẾNG ANH – MỖI NGÀY MỘT BƯỚC TIẾN',
   'ĐOÀN KẾT – KỶ LUẬT – TRÁCH NHIỆM',
   'SỐNG XANH – THAM GIA TÍCH CỰC',
   'YÊU THƯƠNG – TRUNG THỰC – TIẾN BỘ'

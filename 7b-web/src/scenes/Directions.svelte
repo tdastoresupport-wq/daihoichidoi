@@ -57,7 +57,7 @@
   ></div>
 
   <!-- Top Scene Header -->
-  <SceneHeader kicker="Scene 03 — Phương hướng nhiệm vụ" title="PHƯƠNG HƯỚNG HOẠT ĐỘNG CHI ĐỘI 7B" />
+  <SceneHeader kicker="Scene 02 — Phương hướng hoạt động" title="PHƯƠNG HƯỚNG HOẠT ĐỘNG CHI ĐỘI 7B" />
 
   <!-- Main Editorial Content -->
   <div class="content-wrapper {POSES[idx]}">

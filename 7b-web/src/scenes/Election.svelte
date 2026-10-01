@@ -4,9 +4,7 @@
   import { CANDIDATES_7B } from '../lib/data';
   import heroBg from '../assets/v2/heroes/hero-election-stage.jpg';
 
-  // All 6 candidates displayed on 1 single slide
-  const leftCol = CANDIDATES_7B.slice(0, 3); // 01, 02, 03
-  const rightCol = CANDIDATES_7B.slice(3, 6); // 04, 05, 06
+  // All 6 candidates displayed on 1 single slide in 2 cols x 3 rows
 
   onMount(() => {
     if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -60,44 +58,22 @@
     </div>
   </header>
 
-  <!-- Central Candidate Presentation Arena: All 6 on 1 Slide -->
+  <!-- Central Candidate Presentation Arena: All 6 on 1 Slide (2 cols x 3 rows) -->
   <main class="candidate-arena">
     <div class="candidate-grid-2col">
-      <!-- Left Column: 01, 02, 03 -->
-      <div class="candidate-column">
-        {#each leftCol as c (c.id)}
-          <div class="candidate-card">
-            <div class="card-glass-frame">
-              <div class="number-tag">
-                <span class="tag-val">{c.number}</span>
-              </div>
-              <div class="candidate-identity">
-                <h2 class="candidate-name">{c.name}</h2>
-                <p class="candidate-role">Ứng cử viên Ban Chấp hành Chi đội 7B</p>
-              </div>
+      {#each CANDIDATES_7B as c (c.id)}
+        <div class="candidate-card">
+          <div class="card-glass-frame">
+            <div class="number-tag">
+              <span class="tag-val">{c.number}</span>
             </div>
-            <div class="card-accent-bar" aria-hidden="true"></div>
-          </div>
-        {/each}
-      </div>
-
-      <!-- Right Column: 04, 05, 06 -->
-      <div class="candidate-column">
-        {#each rightCol as c (c.id)}
-          <div class="candidate-card">
-            <div class="card-glass-frame">
-              <div class="number-tag">
-                <span class="tag-val">{c.number}</span>
-              </div>
-              <div class="candidate-identity">
-                <h2 class="candidate-name">{c.name}</h2>
-                <p class="candidate-role">Ứng cử viên Ban Chấp hành Chi đội 7B</p>
-              </div>
+            <div class="candidate-identity">
+              <h2 class="candidate-name">{c.name}</h2>
             </div>
-            <div class="card-accent-bar" aria-hidden="true"></div>
           </div>
-        {/each}
-      </div>
+          <div class="card-accent-bar" aria-hidden="true"></div>
+        </div>
+      {/each}
     </div>
   </main>
 
@@ -301,12 +277,6 @@
     width: 100%;
   }
 
-  .candidate-column {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-
   .candidate-card {
     position: relative;
     border-radius: var(--r-md);
@@ -332,7 +302,7 @@
     display: flex;
     align-items: center;
     gap: 24px;
-    padding: 16px 28px;
+    padding: 18px 28px;
     position: relative;
     z-index: 2;
   }
@@ -362,24 +332,17 @@
   .candidate-identity {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    justify-content: center;
     flex: 1;
   }
   .candidate-name {
     font-family: var(--f-display);
-    font-size: 38px;
+    font-size: 40px;
     line-height: 1.15;
     color: #ffffff;
     margin: 0;
     letter-spacing: 0.02em;
     text-shadow: 0 3px 14px rgba(0, 0, 0, 0.9);
-  }
-  .candidate-role {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--c-spot-cyan);
-    letter-spacing: 0.05em;
-    margin: 0;
   }
 
   .card-accent-bar {

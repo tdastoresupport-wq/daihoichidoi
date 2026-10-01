@@ -1,7 +1,7 @@
 // Presentation + true gameplay state machine (Svelte 5 runes).
 import { PUZZLE_CELLS, type PuzzleCell } from './data';
 
-export type SceneId = 'opening' | 'election' | 'directions' | 'lobby' | 'game' | 'closing';
+export type SceneId = 'opening' | 'directions' | 'election' | 'intro' | 'lobby' | 'game' | 'closing';
 
 export type CellStatus = 'available' | 'opened' | 'completed';
 export type LastResult = 'correct' | 'wrong' | 'presented' | 'lucky' | null;
@@ -20,7 +20,7 @@ export type ChallengeState =
   | 'piece_unlock'
   | 'complete';
 
-export const LINEAR_SCENES: SceneId[] = ['opening', 'election', 'directions', 'lobby', 'closing'];
+export const LINEAR_SCENES: SceneId[] = ['opening', 'directions', 'election', 'intro', 'lobby', 'closing'];
 
 class PresentationEngine {
   scene = $state<SceneId>('opening');
@@ -49,8 +49,9 @@ class PresentationEngine {
   // Dynamic label for bottom dock action button
   get primaryActionLabel(): string {
     if (this.scene === 'opening') return 'BẮT ĐẦU ›';
-    if (this.scene === 'election') return 'TIẾP ›';
     if (this.scene === 'directions') return 'TIẾP ›';
+    if (this.scene === 'election') return 'VÀO PHẦN TRÒ CHƠI ›';
+    if (this.scene === 'intro') return 'VÀO BẢNG CHỌN Ô ›';
     if (this.scene === 'lobby') {
       return this.completedCount === 9 ? 'XEM BỨC TRANH 🌟' : 'CHỌN Ô SỐ';
     }

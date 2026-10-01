@@ -102,7 +102,7 @@ const LINK_PATH =
   }
 </script>
 
-<SceneHeader kicker="Scene 04 — Thử thách tri thức" title="BỨC TRANH BÍ MẬT — CHI ĐỘI 7B" />
+<SceneHeader kicker="Scene 05 — Thử thách tri thức" title="BỨC TRANH BÍ MẬT — CHI ĐỘI 7B" />
 
 <div class="lobby-stage">
   <!-- Slim command line: instruction + progress, no pills -->
