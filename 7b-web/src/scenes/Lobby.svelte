@@ -110,9 +110,8 @@
     </div>
   </div>
 
-  <!-- The 3×3 Mystery Energy Board -->
-  <div class="board-frame">
-    <div class="board-ambient-glow" aria-hidden="true"></div>
+  <!-- The 3×3 Mystery Board (frameless — artifacts in the world) -->
+  <div class="board-field">
     <div class="board">
       {#each PUZZLE_CELLS as cell (cell.id)}
         {@const st = pres.status[cell.id - 1]}
@@ -229,16 +228,12 @@
     justify-content: center;
   }
 
-  /* ── INSTRUCTION RAIL ───────────────────────────── */
+  /* ── INSTRUCTION RAIL (bare text, no pill) ─────── */
   .instruction-rail {
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    background: rgba(10, 24, 58, 0.72);
-    border: 1px solid rgba(0, 229, 255, 0.22);
-    border-radius: var(--r-pill);
-    padding: 6px 20px;
-    backdrop-filter: blur(16px);
+    padding: 4px 2px;
   }
   .rail-step {
     display: inline-flex;
@@ -263,16 +258,12 @@
     font-weight: 700;
   }
 
-  /* ── SLEEK PROGRESS TRACK ───────────────────────── */
+  /* ── SLEEK PROGRESS TRACK (bare, no pill) ───────── */
   .progress-track {
     display: inline-flex;
     align-items: center;
     gap: 14px;
-    background: rgba(10, 24, 58, 0.72);
-    border: 1px solid rgba(0, 229, 255, 0.22);
-    border-radius: var(--r-pill);
-    padding: 6px 20px;
-    backdrop-filter: blur(16px);
+    padding: 4px 2px;
   }
   .dots-meter {
     display: flex;
@@ -313,28 +304,16 @@
     letter-spacing: 0.05em;
   }
 
-  /* ── BOARD FRAME ────────────────────────────────── */
-  .board-frame {
+  /* ── BOARD FIELD (no frame — artifacts float in the world) ── */
+  .board-field {
     position: relative;
-    padding: 20px;
-    border-radius: var(--r-lg);
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(16, 36, 88, 0.7) 0%,
-      rgba(7, 17, 38, 0.95) 100%
-    );
-    border: 1.5px solid rgba(0, 229, 255, 0.3);
-    box-shadow:
-      0 28px 72px rgba(0, 0, 0, 0.85),
-      0 0 50px rgba(26, 101, 255, 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
+    padding: 12px;
   }
-  .board-ambient-glow {
+  .board-field::before {
+    content: '';
     position: absolute;
-    inset: 0;
-    border-radius: var(--r-lg);
-    background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0, 229, 255, 0.06) 0%, transparent 70%);
+    inset: -60px;
+    background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0, 229, 255, 0.07) 0%, transparent 70%);
     pointer-events: none;
   }
 

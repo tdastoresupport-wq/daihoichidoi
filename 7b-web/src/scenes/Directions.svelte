@@ -12,6 +12,8 @@
 
   const DIR_IMAGES = [dir1, dir2, dir3, dir4, dir5];
   const ICONS = ['ai', 'abc', 'team', 'leaf', 'heart'];
+  // Editorial variety per chapter: left / right / center-low overlays.
+  const POSES = ['pose-left', 'pose-right', 'pose-center', 'pose-left-wide', 'pose-right'];
 
   let idx = $state(0);
 
@@ -47,19 +49,19 @@
     />
   {/each}
 
-  <!-- Adaptive Text-Safe Gradient Overlay -->
+  <!-- Text-safe scrim (bottom-weighted for direct typography) -->
   <div
     class="artwork-overlay"
-    class:align-right={idx === 1}
+    class:flip-x={idx === 1 || idx === 4}
     aria-hidden="true"
   ></div>
 
   <!-- Top Scene Header -->
   <SceneHeader kicker="Scene 02 — Định hướng năm học" title="PHƯƠNG HƯỚNG HOẠT ĐỘNG" />
 
-  <!-- Main Hero Content Panel -->
-  <div class="content-wrapper" class:align-right={idx === 1}>
-    <div class="glass-content">
+  <!-- Main Editorial Content (no panel — type directly on scrim) -->
+  <div class="content-wrapper {POSES[idx]}">
+    <div class="editorial">
       <!-- Kicker badge with counter -->
       <div class="direction-badge">
         <span class="badge-num">MỤC {String(idx + 1).padStart(2, '0')}</span>
@@ -83,9 +85,9 @@
         Năm học 2026 – 2027 · Chi đội 7B
       </div>
 
-      <!-- Dot Navigation -->
+      <!-- Dot Navigation (bare, no pill) -->
       <div class="nav-controls">
-        <div class="dots-pill">
+        <div class="dots-row">
           {#each DIRECTIONS as _, i}
             <button
               class="dot-btn"
@@ -151,73 +153,80 @@
     z-index: 2;
   }
 
-  /* ── ADAPTIVE OVERLAY ───────────────────────────── */
+  /* ── TEXT-SAFE SCRIM (left-set default / right-set flipped) ── */
   .artwork-overlay {
     position: absolute;
     inset: 0;
     z-index: 3;
     pointer-events: none;
-    transition: background 0.5s ease;
-    background: linear-gradient(
-      90deg,
-      rgba(7, 17, 38, 0.96) 0%,
-      rgba(7, 17, 38, 0.88) 38%,
-      rgba(7, 17, 38, 0.55) 60%,
-      rgba(7, 17, 38, 0.15) 85%,
-      transparent 100%
-    );
+    transition: opacity 0.5s ease;
+    background:
+      linear-gradient(
+        100deg,
+        rgba(7, 17, 38, 0.92) 0%,
+        rgba(7, 17, 38, 0.55) 34%,
+        rgba(7, 17, 38, 0.05) 62%,
+        transparent 85%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(7, 17, 38, 0.5) 0%,
+        transparent 26%,
+        transparent 55%,
+        rgba(7, 17, 38, 0.94) 100%
+      );
   }
-  .artwork-overlay.align-right {
-    background: linear-gradient(
-      270deg,
-      rgba(7, 17, 38, 0.96) 0%,
-      rgba(7, 17, 38, 0.88) 38%,
-      rgba(7, 17, 38, 0.55) 60%,
-      rgba(7, 17, 38, 0.15) 85%,
-      transparent 100%
-    );
+  .artwork-overlay.flip-x {
+    background:
+      linear-gradient(
+        260deg,
+        rgba(7, 17, 38, 0.92) 0%,
+        rgba(7, 17, 38, 0.55) 34%,
+        rgba(7, 17, 38, 0.05) 62%,
+        transparent 85%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(7, 17, 38, 0.5) 0%,
+        transparent 26%,
+        transparent 55%,
+        rgba(7, 17, 38, 0.94) 100%
+      );
   }
 
-  /* ── CONTENT WRAPPER ────────────────────────────── */
+  /* ── EDITORIAL WRAPPER (text directly on scrim) ── */
   .content-wrapper {
     position: absolute;
     inset: 0;
     z-index: var(--z-content);
     display: flex;
-    align-items: center;
-    padding: 100px var(--safe) 60px;
-    justify-content: flex-start;
-    transition: opacity 0.4s var(--e-out);
+    padding: 150px var(--safe) 170px;
+    pointer-events: none;
   }
-  .content-wrapper.align-right {
-    justify-content: flex-end;
+  .content-wrapper > * {
+    pointer-events: auto;
   }
+  .pose-left { align-items: flex-end; justify-content: flex-start; }
+  .pose-left-wide { align-items: center; justify-content: flex-start; }
+  .pose-right { align-items: flex-end; justify-content: flex-end; text-align: right; }
+  .pose-center { align-items: flex-end; justify-content: center; text-align: center; }
 
-  .glass-content {
-    max-width: 860px;
+  .editorial {
+    max-width: 1000px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    padding: 40px 48px;
-    background: rgba(7, 17, 38, 0.65);
-    border: 1.5px solid rgba(255, 196, 37, 0.25);
-    border-radius: var(--r-xl);
-    backdrop-filter: blur(20px);
-    box-shadow:
-      0 24px 60px rgba(0, 0, 0, 0.7),
-      0 0 40px rgba(26, 101, 255, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    gap: 22px;
   }
-  .align-right .glass-content {
-    align-items: flex-end;
-    text-align: right;
-  }
+  .pose-right .editorial { align-items: flex-end; }
+  .pose-right .editorial .direction-badge { align-self: flex-end; }
+  .pose-center .editorial { align-items: center; max-width: 1200px; }
+  .pose-center .editorial .direction-badge { align-self: center; }
 
   /* ── BADGE ──────────────────────────────────────── */
   .direction-badge {
     display: inline-flex;
     align-items: center;
+    align-self: flex-start;
     gap: 8px;
     font-family: var(--f-body);
     font-weight: 800;
@@ -258,11 +267,12 @@
   /* ── HEADLINE & SUB ─────────────────────────────── */
   .direction-headline {
     font-family: var(--f-display);
-    font-size: 56px;
-    line-height: 1.15;
+    font-size: 84px;
+    line-height: 1.08;
     color: var(--c-ink-100);
     margin: 0;
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8);
+    text-wrap: balance;
+    text-shadow: 0 6px 32px rgba(0, 0, 0, 0.85);
   }
 
   .direction-sub {
@@ -280,15 +290,11 @@
     gap: 16px;
     margin-top: 8px;
   }
-  .dots-pill {
+  .dots-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(13, 29, 69, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--r-pill);
-    padding: 8px 18px;
-    backdrop-filter: blur(12px);
+    gap: 14px;
+    padding: 4px 2px;
   }
   .dot-btn {
     width: 14px;

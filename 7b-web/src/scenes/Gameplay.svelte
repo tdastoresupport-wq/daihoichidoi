@@ -371,18 +371,15 @@
     line-height: 1.4;
   }
 
-  /* ── QUESTION ───────────────────────────────────── */
+  /* ── QUESTION (direct type, gold rule accent — no box) ── */
   .question-block {
-    background: rgba(21, 43, 104, 0.55);
-    border-left: 4px solid var(--c-gold-core);
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-    padding: 24px 32px;
-    backdrop-filter: blur(12px);
+    border-left: 5px solid var(--c-gold-core);
+    padding: 6px 0 6px 30px;
   }
   .game-stage:not(.has-image):not(.is-lucky) .question-block {
     border-left: none;
-    border: 2px solid rgba(255, 196, 37, 0.35);
-    border-radius: var(--r-md);
+    border-top: 5px solid var(--c-gold-core);
+    padding: 26px 0 0;
     text-align: center;
     max-width: 1000px;
   }
@@ -493,36 +490,20 @@
     border-color: var(--c-gold-core);
   }
 
-  /* ── ANSWER CARD ────────────────────────────────── */
+  /* ── ANSWER REVEAL (direct type under gold rule — no box) */
   .acard {
-    border-radius: var(--r-md);
-    padding: 24px 32px;
-    background: rgba(7, 17, 38, 0.9);
-    border: 2px solid var(--c-gold-core);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-    border-left: 6px solid var(--c-gold-core);
+    padding: 24px 0 0;
+    border-top: 3px solid var(--c-gold-core);
   }
   .game-stage:not(.has-image):not(.is-lucky) .acard {
-    border-left: 2px solid var(--c-gold-core);
     text-align: center;
     max-width: 1000px;
   }
   .acard.good {
-    border-color: var(--c-success);
-    border-left-color: var(--c-success);
-    background: linear-gradient(
-      160deg,
-      rgba(16, 185, 129, 0.2) 0%,
-      rgba(7, 17, 38, 0.95) 100%
-    );
+    border-top-color: var(--c-success);
   }
   .acard.pass {
-    border-color: var(--c-gold-core);
-    background: linear-gradient(
-      160deg,
-      rgba(255, 196, 37, 0.15) 0%,
-      rgba(7, 17, 38, 0.95) 100%
-    );
+    border-top-color: var(--c-gold-core);
   }
   .acard-header {
     margin-bottom: 10px;
@@ -617,11 +598,7 @@
     display: inline-flex;
     align-items: center;
     gap: 16px;
-    background: rgba(255, 196, 37, 0.15);
-    border: 2px solid var(--c-gold-core);
-    border-radius: var(--r-pill);
-    padding: 18px 48px;
-    box-shadow: 0 0 48px rgba(255, 196, 37, 0.4);
+    padding: 6px 0;
     color: var(--c-gold-core);
     align-self: flex-start;
   }
@@ -781,20 +758,17 @@
     );
   }
 
-  /* Piece Unlocked Banner */
+  /* Piece Unlocked Banner (slim status line) */
   .piece-unlocked-banner {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(255, 196, 37, 0.2));
-    border: 1.5px solid var(--c-gold-core);
-    border-radius: var(--r-md);
-    padding: 12px 20px;
+    border-top: 2px solid var(--c-gold-core);
+    padding: 12px 2px 0;
     margin-top: 14px;
     font-size: 20px;
     font-weight: 800;
     color: var(--c-gold-glow);
-    box-shadow: 0 0 24px rgba(255, 196, 37, 0.35);
     animation: bannerPop 0.45s var(--e-out);
   }
   .piece-unlocked-banner.lucky-banner {
