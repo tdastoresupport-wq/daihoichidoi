@@ -21,6 +21,16 @@
     scale = Math.min(window.innerWidth / W, window.innerHeight / H);
   }
 
+  // rAF-throttled: resize storms collapse into one scale recompute.
+  let rafId = 0;
+  function onResize(): void {
+    if (rafId) return;
+    rafId = window.requestAnimationFrame(() => {
+      rafId = 0;
+      fit();
+    });
+  }
+
   function toggleFullscreen(): void {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen().catch(() => {});
@@ -116,12 +126,13 @@
 
   onMount(() => {
     fit();
-    window.addEventListener('resize', fit);
+    window.addEventListener('resize', onResize);
     window.addEventListener('keydown', onKey);
     const unlock = (): void => audio.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
     return () => {
-      window.removeEventListener('resize', fit);
+      window.removeEventListener('resize', onResize);
+      if (rafId) window.cancelAnimationFrame(rafId);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('pointerdown', unlock);
     };
