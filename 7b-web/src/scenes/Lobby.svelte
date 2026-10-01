@@ -13,13 +13,14 @@
   const ABSTRACT_GLYPHS = ['◈', '◇', '✦', '⬡', '✧', '◈', '◇', '✦', '⬡'];
 
 // Constellation layout (% of field) — asymmetric, mysterious.
+// Top nodes kept clear of the command line (orb radius accounted).
 const NODE_POS = [
-  { x: 27, y: 10 }, { x: 50, y: 6 }, { x: 16, y: 32 },
-  { x: 74, y: 28 }, { x: 48, y: 47 }, { x: 20, y: 68 },
-  { x: 70, y: 66 }, { x: 36, y: 88 }, { x: 60, y: 88 }
+  { x: 27, y: 19 }, { x: 50, y: 16 }, { x: 16, y: 34 },
+  { x: 74, y: 30 }, { x: 48, y: 48 }, { x: 20, y: 68 },
+  { x: 70, y: 66 }, { x: 36, y: 87 }, { x: 60, y: 87 }
 ];
 const LINK_PATH =
-  'M421,62 L780,37 L1154,174 L1092,409 L936,546 L562,546 L312,422 L250,198 L749,291 Z';
+  'M421,118 L780,99 L1154,186 L1092,409 L936,539 L562,539 L312,422 L250,211 L749,298 Z';
 
   let showGrandReveal = $state(false);
   let grandRevealModal: HTMLElement | null = $state(null);
@@ -228,9 +229,9 @@ const LINK_PATH =
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 18px;
-    padding: 105px var(--safe) 55px;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 260px var(--safe) 40px;
   }
 
   /* ── LOBBY HEADER BAR ───────────────────────────── */
@@ -394,9 +395,9 @@ const LINK_PATH =
   /* ── MYSTERY NODE (orb, not card) ───────────────── */
   .tile.node {
     position: absolute;
-    width: 190px;
-    height: 190px;
-    margin: -95px 0 0 -95px; /* center on left/top point (GSAP-safe) */
+    width: 180px;
+    height: 180px;
+    margin: -90px 0 0 -90px; /* center on left/top point (GSAP-safe) */
     border-radius: 50%;
     border: 2px solid rgba(0, 229, 255, 0.35);
     background: radial-gradient(
@@ -485,7 +486,7 @@ const LINK_PATH =
   }
   .num-id {
     font-family: var(--f-display);
-    font-size: 62px;
+    font-size: 58px;
     line-height: 1;
     color: #fff;
     text-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 229, 255, 0.25);
