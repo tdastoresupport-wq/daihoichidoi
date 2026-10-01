@@ -1,65 +1,25 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import gsap from 'gsap';
-  import { pres } from '../lib/presentation.svelte';
-  import { audio } from '../lib/audio.svelte';
   import { CANDIDATES_7B } from '../lib/data';
   import heroBg from '../assets/v2/heroes/hero-election-stage.jpg';
 
-  const CANDIDATES_PER_PAGE = 2; // 2 large prominent candidates per view for optimal hall readability
-  let pageIdx = $state(0);
-
-  const totalPages = $derived(
-    Math.max(1, Math.ceil(CANDIDATES_7B.length / CANDIDATES_PER_PAGE))
-  );
-
-  const currentCandidates = $derived(
-    CANDIDATES_7B.slice(
-      pageIdx * CANDIDATES_PER_PAGE,
-      (pageIdx + 1) * CANDIDATES_PER_PAGE
-    )
-  );
-
-  export function isLast(): boolean {
-    return pageIdx >= totalPages - 1;
-  }
-
-  export function step(dir: 1 | -1): boolean {
-    const next = pageIdx + dir;
-    if (next >= 0 && next < totalPages) {
-      pageIdx = next;
-      audio.click();
-      animateCards();
-      return true;
-    }
-    return false;
-  }
-
-  function setPage(i: number): void {
-    if (i !== pageIdx && i >= 0 && i < totalPages) {
-      pageIdx = i;
-      audio.click();
-      animateCards();
-    }
-  }
-
-  function animateCards(): void {
-    if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    gsap.fromTo(
-      '.candidate-card',
-      { opacity: 0, scale: 0.95, y: 16 },
-      { opacity: 1, scale: 1, y: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out', overwrite: true }
-    );
-  }
+  // All 6 candidates displayed on 1 single slide
+  const leftCol = CANDIDATES_7B.slice(0, 3); // 01, 02, 03
+  const rightCol = CANDIDATES_7B.slice(3, 6); // 04, 05, 06
 
   onMount(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     gsap.fromTo(
       '.election-header',
       { opacity: 0, y: -20 },
       { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', overwrite: true }
     );
-    animateCards();
+    gsap.fromTo(
+      '.candidate-card',
+      { opacity: 0, scale: 0.96, y: 16 },
+      { opacity: 1, scale: 1, y: 0, duration: 0.45, stagger: 0.06, ease: 'power2.out', overwrite: true }
+    );
   });
 </script>
 
@@ -93,74 +53,60 @@
       <span class="title-class">CHI ĐỘI 7B</span>
     </h1>
 
-    <div class="year-kicker">
-      <span>NĂM HỌC 2026 – 2027</span>
-    </div>
-
-    <div class="section-kicker">
-      <span class="kicker-line"></span>
-      <span class="kicker-text">DANH SÁCH ỨNG CỬ / ĐỀ CỬ</span>
-      <span class="kicker-line"></span>
+    <div class="header-sub-row">
+      <span class="year-kicker">NĂM HỌC 2026 – 2027</span>
+      <span class="sep-dot">·</span>
+      <span class="section-kicker">DANH SÁCH ỨNG CỬ / ĐỀ CỬ</span>
     </div>
   </header>
 
-  <!-- Central Candidate Presentation Arena -->
+  <!-- Central Candidate Presentation Arena: All 6 on 1 Slide -->
   <main class="candidate-arena">
-    <div class="candidate-stack">
-      {#each currentCandidates as c (c.id)}
-        <div class="candidate-card">
-          <div class="podium-aura" aria-hidden="true"></div>
-          <div class="card-glass-frame">
-            <div class="number-tag">
-              <span class="tag-val">{c.number}</span>
+    <div class="candidate-grid-2col">
+      <!-- Left Column: 01, 02, 03 -->
+      <div class="candidate-column">
+        {#each leftCol as c (c.id)}
+          <div class="candidate-card">
+            <div class="card-glass-frame">
+              <div class="number-tag">
+                <span class="tag-val">{c.number}</span>
+              </div>
+              <div class="candidate-identity">
+                <h2 class="candidate-name">{c.name}</h2>
+                <p class="candidate-role">Ứng cử viên Ban Chấp hành Chi đội 7B</p>
+              </div>
             </div>
-            <div class="candidate-identity">
-              <h2 class="candidate-name">{c.name}</h2>
-              <p class="candidate-role">Ứng cử viên Ban Chấp hành Chi đội 7B</p>
-            </div>
+            <div class="card-accent-bar" aria-hidden="true"></div>
           </div>
-          <div class="card-accent-bar" aria-hidden="true"></div>
-        </div>
-      {/each}
-    </div>
-  </main>
+        {/each}
+      </div>
 
-  <!-- Multi-step Sequence Pagination -->
-  <footer class="election-footer">
-    <div class="sequence-nav">
-      <span class="seq-label">DANH SÁCH ỨNG CỬ VIÊN ({pageIdx * CANDIDATES_PER_PAGE + 1}–{Math.min((pageIdx + 1) * CANDIDATES_PER_PAGE, CANDIDATES_7B.length)} / {CANDIDATES_7B.length})</span>
-      <div class="seq-dots">
-        {#each Array(totalPages) as _, i}
-          <button
-            class="seq-dot"
-            class:active={i === pageIdx}
-            onclick={() => setPage(i)}
-            aria-label={`Trang danh sách ${i + 1}`}
-          >
-            <span></span>
-          </button>
+      <!-- Right Column: 04, 05, 06 -->
+      <div class="candidate-column">
+        {#each rightCol as c (c.id)}
+          <div class="candidate-card">
+            <div class="card-glass-frame">
+              <div class="number-tag">
+                <span class="tag-val">{c.number}</span>
+              </div>
+              <div class="candidate-identity">
+                <h2 class="candidate-name">{c.name}</h2>
+                <p class="candidate-role">Ứng cử viên Ban Chấp hành Chi đội 7B</p>
+              </div>
+            </div>
+            <div class="card-accent-bar" aria-hidden="true"></div>
+          </div>
         {/each}
       </div>
     </div>
-  </footer>
+  </main>
 
-  <!-- Left & Right Navigation Arrows -->
-  <button
-    class="nav-arrow nav-prev"
-    disabled={pageIdx === 0}
-    onclick={() => step(-1)}
-    aria-label="Ứng cử viên trước"
-  >
-    ‹
-  </button>
-  <button
-    class="nav-arrow nav-next"
-    disabled={pageIdx === totalPages - 1}
-    onclick={() => step(1)}
-    aria-label="Ứng cử viên tiếp theo"
-  >
-    ›
-  </button>
+  <!-- Bottom Stage Subtext -->
+  <footer class="election-footer">
+    <p class="footer-note">
+      Đại biểu tiến hành biểu quyết / bỏ phiếu bầu Ban Chấp hành Chi đội nhiệm kỳ mới
+    </p>
+  </footer>
 </div>
 
 <style>
@@ -172,7 +118,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 60px var(--safe) 120px;
+    padding: 50px var(--safe) 100px;
     background: var(--c-stage-void);
   }
 
@@ -183,7 +129,7 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
-    filter: brightness(0.85) contrast(1.1);
+    filter: brightness(0.82) contrast(1.1);
     z-index: 1;
   }
 
@@ -193,8 +139,8 @@
     z-index: 2;
     background: radial-gradient(
       ellipse 120% 90% at 50% 15%,
-      rgba(7, 17, 38, 0.72) 0%,
-      rgba(7, 17, 38, 0.9) 60%,
+      rgba(7, 17, 38, 0.75) 0%,
+      rgba(7, 17, 38, 0.92) 60%,
       rgba(7, 17, 38, 0.98) 100%
     );
     pointer-events: none;
@@ -214,32 +160,32 @@
     top: 55%;
     transform: translate(-50%, -50%) rotateX(70deg);
     border-radius: 50%;
-    border: 2px solid rgba(0, 229, 255, 0.25);
-    box-shadow: 0 0 50px rgba(0, 229, 255, 0.15);
+    border: 2px solid rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 50px rgba(0, 229, 255, 0.12);
   }
   .voting-ring.outer {
-    width: 1400px;
-    height: 1400px;
+    width: 1500px;
+    height: 1500px;
     border-style: dashed;
     animation: ringSpin 60s linear infinite;
   }
   .voting-ring.inner {
-    width: 1000px;
-    height: 1000px;
-    border-color: rgba(255, 196, 37, 0.3);
+    width: 1100px;
+    height: 1100px;
+    border-color: rgba(255, 196, 37, 0.25);
     animation: ringSpin 40s linear infinite reverse;
   }
   .center-stage-glow {
     position: absolute;
     left: 50%;
     top: 52%;
-    width: 800px;
-    height: 400px;
+    width: 900px;
+    height: 450px;
     transform: translate(-50%, -50%);
     background: radial-gradient(
       ellipse at 50% 50%,
-      rgba(0, 229, 255, 0.12) 0%,
-      rgba(26, 101, 255, 0.08) 45%,
+      rgba(0, 229, 255, 0.1) 0%,
+      rgba(26, 101, 255, 0.06) 45%,
       transparent 75%
     );
   }
@@ -254,7 +200,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     text-align: center;
   }
 
@@ -264,39 +210,39 @@
     gap: 10px;
     font-family: var(--f-body);
     font-weight: 800;
-    font-size: 18px;
+    font-size: 17px;
     letter-spacing: 0.16em;
     color: var(--c-gold-glow);
     background: rgba(13, 29, 69, 0.85);
     border: 1px solid rgba(255, 196, 37, 0.45);
     border-radius: var(--r-pill);
-    padding: 6px 24px;
+    padding: 5px 22px;
     backdrop-filter: blur(14px);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
   }
   .icon-star {
     color: var(--c-gold-core);
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .election-main-title {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 18px;
+    gap: 16px;
     margin: 0;
     line-height: 1.1;
   }
   .title-action {
     font-family: var(--f-display);
-    font-size: 56px;
+    font-size: 52px;
     letter-spacing: 0.04em;
     color: var(--c-ink-100);
     text-shadow: 0 4px 24px rgba(0, 0, 0, 0.85);
   }
   .title-class {
     font-family: var(--f-display);
-    font-size: 68px;
+    font-size: 64px;
     background: linear-gradient(
       135deg,
       #ffffff 0%,
@@ -310,84 +256,83 @@
     filter: drop-shadow(0 4px 20px rgba(255, 196, 37, 0.5));
   }
 
+  .header-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
   .year-kicker {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     color: var(--c-ink-200);
     letter-spacing: 0.08em;
   }
-
+  .sep-dot {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 20px;
+  }
   .section-kicker {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-top: 4px;
-  }
-  .kicker-line {
-    width: 60px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--c-spot-cyan));
-  }
-  .section-kicker .kicker-line:last-child {
-    background: linear-gradient(90deg, var(--c-spot-cyan), transparent);
-  }
-  .kicker-text {
     font-family: var(--f-body);
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.16em;
     color: var(--c-spot-cyan);
     text-shadow: 0 0 16px rgba(0, 229, 255, 0.6);
   }
 
-  /* ── CANDIDATE ARENA ────────────────────────────── */
+  /* ── ALL 6 CANDIDATES IN 2 COLUMNS ──────────────── */
   .candidate-arena {
     position: relative;
     z-index: 10;
-    width: 1400px;
+    width: 1540px;
     max-width: calc(100% - var(--safe) * 2);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     flex: 1;
-    margin: 16px 0;
+    margin: 12px 0;
   }
 
-  .candidate-stack {
+  .candidate-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 36px;
+    width: 100%;
+  }
+
+  .candidate-column {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    width: 100%;
-    max-width: 1100px;
+    gap: 18px;
   }
 
   .candidate-card {
     position: relative;
-    border-radius: var(--r-lg);
+    border-radius: var(--r-md);
     background: rgba(11, 26, 62, 0.85);
-    border: 2px solid rgba(0, 229, 255, 0.4);
+    border: 1.5px solid rgba(0, 229, 255, 0.35);
     box-shadow:
-      0 20px 50px rgba(0, 0, 0, 0.7),
-      inset 0 1px 16px rgba(255, 255, 255, 0.12),
-      0 0 35px rgba(0, 229, 255, 0.15);
-    backdrop-filter: blur(24px);
+      0 12px 32px rgba(0, 0, 0, 0.65),
+      inset 0 1px 12px rgba(255, 255, 255, 0.1),
+      0 0 24px rgba(0, 229, 255, 0.1);
+    backdrop-filter: blur(20px);
     overflow: hidden;
     transition: transform var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
   }
   .candidate-card:hover {
-    transform: translateY(-4px) scale(1.015);
+    transform: translateY(-2px) scale(1.01);
     border-color: var(--c-spot-cyan);
     box-shadow:
-      0 26px 60px rgba(0, 0, 0, 0.85),
-      0 0 45px rgba(0, 229, 255, 0.4);
+      0 16px 40px rgba(0, 0, 0, 0.8),
+      0 0 32px rgba(0, 229, 255, 0.3);
   }
 
   .card-glass-frame {
     display: flex;
     align-items: center;
-    gap: 36px;
-    padding: 28px 48px;
+    gap: 24px;
+    padding: 16px 28px;
     position: relative;
     z-index: 2;
   }
@@ -396,20 +341,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 110px;
-    height: 110px;
+    min-width: 78px;
+    height: 78px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff7d6, var(--c-gold-core) 55%, var(--c-gold-500) 100%);
     color: var(--c-ink-900);
     box-shadow:
-      0 10px 30px rgba(255, 196, 37, 0.5),
-      0 0 25px rgba(255, 196, 37, 0.35);
-    border: 3px solid #ffffff;
+      0 6px 20px rgba(255, 196, 37, 0.45),
+      0 0 18px rgba(255, 196, 37, 0.3);
+    border: 2.5px solid #ffffff;
     flex-shrink: 0;
   }
   .tag-val {
     font-family: var(--f-display);
-    font-size: 56px;
+    font-size: 40px;
     font-weight: 900;
     line-height: 1;
   }
@@ -417,23 +362,23 @@
   .candidate-identity {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
   }
   .candidate-name {
     font-family: var(--f-display);
-    font-size: 52px;
+    font-size: 38px;
     line-height: 1.15;
     color: #ffffff;
     margin: 0;
-    letter-spacing: 0.03em;
-    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.02em;
+    text-shadow: 0 3px 14px rgba(0, 0, 0, 0.9);
   }
   .candidate-role {
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--c-spot-cyan);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     margin: 0;
   }
 
@@ -442,12 +387,12 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 5px;
+    height: 3px;
     background: linear-gradient(90deg, var(--c-gold-core), var(--c-spot-cyan));
-    opacity: 0.85;
+    opacity: 0.8;
   }
 
-  /* ── FOOTER & PAGINATION ────────────────────────── */
+  /* ── FOOTER ─────────────────────────────────────── */
   .election-footer {
     position: relative;
     z-index: 10;
@@ -455,77 +400,15 @@
     align-items: center;
     justify-content: center;
   }
-  .sequence-nav {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-  .seq-label {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--c-ink-200);
-    letter-spacing: 0.12em;
-  }
-  .seq-dots {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .seq-dot {
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-  }
-  .seq-dot span {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transition: width var(--t-fast) var(--e-out), background-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out), border-radius var(--t-fast) var(--e-out);
-  }
-  .seq-dot.active span {
-    width: 36px;
+  .footer-note {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--c-ink-300);
+    margin: 0;
+    letter-spacing: 0.04em;
+    background: rgba(7, 17, 38, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--r-pill);
-    background: var(--c-gold-core);
-    box-shadow: 0 0 16px var(--c-gold-core);
-  }
-
-  /* ── FLOATING ARROWS ────────────────────────────── */
-  .nav-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(255, 255, 255, 0.25);
-    background: rgba(13, 29, 69, 0.75);
-    color: var(--c-ink-100);
-    font-size: 40px;
-    line-height: 1;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    backdrop-filter: blur(14px);
-    z-index: var(--z-content);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
-    transition: transform var(--t-fast) var(--e-out), background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out), opacity var(--t-fast) var(--e-out);
-  }
-  .nav-prev { left: 28px; }
-  .nav-next { right: 28px; }
-  .nav-arrow:disabled {
-    opacity: 0.18;
-    cursor: default;
-    pointer-events: none;
-  }
-  .nav-arrow:not(:disabled):hover {
-    background: var(--c-spot-400);
-    border-color: var(--c-spot-cyan);
-    box-shadow: 0 0 24px var(--c-spot-400);
-    transform: translateY(-50%) scale(1.1);
+    padding: 6px 24px;
   }
 </style>

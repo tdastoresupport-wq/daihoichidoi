@@ -16,7 +16,6 @@
   const H = 1080;
   let scale = $state(1);
   let sceneEl: HTMLElement | null = $state(null);
-  let electionRef: { step: (d: 1 | -1) => boolean; isLast: () => boolean } | null = $state(null);
   let directionsRef: { step: (d: 1 | -1) => boolean } | null = $state(null);
 
   function fit(): void {
@@ -50,11 +49,7 @@
         break;
 
       case 'election':
-        if (electionRef && !electionRef.step(1)) {
-          pres.next();
-        } else if (!electionRef) {
-          pres.next();
-        }
+        pres.next();
         break;
 
       case 'directions':
@@ -118,7 +113,6 @@
       return;
     }
     if (pres.scene === 'directions' && directionsRef?.step(-1)) return;
-    if (pres.scene === 'election' && electionRef?.step(-1)) return;
     pres.prev();
   }
 
@@ -130,12 +124,10 @@
     if (e.key === 'ArrowRight' && !typing) {
       e.preventDefault();
       if (pres.scene === 'directions' && directionsRef?.step(1)) return;
-      if (pres.scene === 'election' && electionRef?.step(1)) return;
       handlePrimaryAction();
     } else if (e.key === 'ArrowLeft' && !typing) {
       e.preventDefault();
       if (pres.scene === 'directions' && directionsRef?.step(-1)) return;
-      if (pres.scene === 'election' && electionRef?.step(-1)) return;
       handleBackAction();
     } else if (e.key === 'Enter' && !typing) {
       e.preventDefault();
@@ -157,10 +149,7 @@
   // Dynamic label for primary dock button
   let dockPrimaryText = $derived.by(() => {
     if (pres.scene === 'opening') return 'BẮT ĐẦU →';
-    if (pres.scene === 'election') {
-      if (electionRef && electionRef.isLast()) return 'TIẾP TỤC →';
-      return 'TIẾP ỨNG CỬ VIÊN →';
-    }
+    if (pres.scene === 'election') return 'TIẾP TỤC →';
     if (pres.scene === 'directions') return 'TIẾP →';
     if (pres.scene === 'lobby') {
       return pres.completedCount === 9 ? 'XEM BỨC TRANH 🌟' : 'CHỌN Ô SỐ';
@@ -242,7 +231,7 @@
         {#if pres.scene === 'opening'}
           <Opening />
         {:else if pres.scene === 'election'}
-          <Election bind:this={electionRef} />
+          <Election />
         {:else if pres.scene === 'directions'}
           <Directions bind:this={directionsRef} />
         {:else if pres.scene === 'lobby'}
