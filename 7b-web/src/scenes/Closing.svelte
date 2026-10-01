@@ -1,7 +1,7 @@
 <script lang="ts">
   import { pres } from '../lib/presentation.svelte';
   import { audio } from '../lib/audio.svelte';
-  import novaBg from '../assets/v2/mascot/nova-7b-character-sheet.jpg';
+  import closingBg from '../assets/v2/heroes/hero-closing-16x9.jpg';
 
   function replay(): void {
     audio.click();
@@ -14,8 +14,8 @@
 </script>
 
 <div class="closing-stage">
-  <!-- Nova-7B as background right -->
-  <img src={novaBg} alt="" class="nova-bg" aria-hidden="true" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+  <!-- Closing victory scene (dedicated hero, not a model sheet) -->
+  <img src={closingBg} alt="Sân khấu bế mạc chiến thắng Chi đội 7B" class="nova-bg" onerror={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
   <div class="nova-vignette" aria-hidden="true"></div>
 
   <!-- Atmospheric layers -->
@@ -62,18 +62,15 @@
     overflow: hidden;
   }
 
-  /* ── NOVA-7B BG (right side) ────────────────────── */
+  /* ── CLOSING VICTORY BG (full-bleed) ──────────── */
   .nova-bg {
     position: absolute;
-    right: -40px;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 110%;
-    width: auto;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
-    object-position: center top;
-    opacity: 0.55;
-    filter: saturate(0.8);
+    object-position: center;
+    filter: brightness(0.9) saturate(1.05);
   }
   .nova-vignette {
     position: absolute;
@@ -81,9 +78,9 @@
     background: linear-gradient(
       90deg,
       rgba(7, 17, 38, 1) 0%,
-      rgba(7, 17, 38, 0.88) 40%,
-      rgba(7, 17, 38, 0.4) 70%,
-      transparent 100%
+      rgba(7, 17, 38, 0.9) 38%,
+      rgba(7, 17, 38, 0.45) 65%,
+      rgba(7, 17, 38, 0.15) 100%
     );
   }
 
