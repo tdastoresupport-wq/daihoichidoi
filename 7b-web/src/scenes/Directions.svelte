@@ -447,20 +447,20 @@
   }
 
   .nodes-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
     width: 100%;
     z-index: 2;
   }
   .achievement-node {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 22px;
     background: rgba(7, 17, 38, 0.85);
     border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--r-md);
-    padding: 16px 20px;
+    padding: 14px 24px;
     transition: transform var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out);
   }
   .achievement-node:hover {
