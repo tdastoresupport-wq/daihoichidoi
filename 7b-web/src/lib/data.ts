@@ -1,7 +1,6 @@
 // ============================================================
-// 7B V10 QUESTION BANK — APPROVED CONTENT (verbatim, do not alter)
+// 7B V10 QUESTION BANK & OFFICIAL DATA (APPROVED CONTENT)
 // ============================================================
-// Q6 music removed entirely. Q9 nine-dots replaced. Q8 stays lucky.
 
 export type CellKind = 'quiz' | 'lucky';
 
@@ -144,7 +143,7 @@ export const PUZZLE_CELLS: PuzzleCell[] = [
     correctIndex: 1,
     explanation: 'Fansipan nằm trong dãy Hoàng Liên Sơn.',
     checkable: true,
-    source: 'V10 Question Bank (replaces old music Q6 — no audio)'
+    source: 'V10 Question Bank'
   },
   {
     id: 7,
@@ -174,7 +173,7 @@ export const PUZZLE_CELLS: PuzzleCell[] = [
     options: [],
     correctIndex: -1,
     explanation: '',
-    checkable: false, // lucky: instant reward
+    checkable: false,
     source: 'V10 Question Bank'
   },
   {
@@ -194,11 +193,44 @@ export const PUZZLE_CELLS: PuzzleCell[] = [
     correctIndex: 3,
     explanation: '6 + 3 = 9 và 6 lớn hơn 3 đúng 3 đơn vị.',
     checkable: true,
-    source: 'V10 Question Bank (replaces nine-dots)'
+    source: 'V10 Question Bank'
   }
 ];
 
-// ── DIRECTIONS (5 phương hướng) ──────────────────────────
+// ── OFFICIAL 7B CANDIDATES (EXACT DATA SUPPLIED) ──────────
+export interface Candidate {
+  id: number;
+  number: string;
+  name: string;
+}
+
+export const CANDIDATES_7B: Candidate[] = [
+  { id: 1, number: '01', name: 'PHẠM HỒNG ANH' },
+  { id: 2, number: '02', name: 'NGUYỄN HOÀNG QUANG ANH' },
+  { id: 3, number: '03', name: 'NGUYỄN HUY DŨNG' },
+  { id: 4, number: '04', name: 'NGUYỄN THÁI DƯƠNG' },
+  { id: 5, number: '05', name: 'ĐỖ NGUYỄN AN NHIÊN' },
+  { id: 6, number: '06', name: 'TRƯƠNG GIA TUỆ' }
+];
+
+// ── OFFICIAL 7B ACADEMIC DATA (EXACT DATA SUPPLIED) ───────
+export interface AcademicStat {
+  category: string;
+  count: number;
+  countDisplay: string;
+  unit: string;
+}
+
+export const ACADEMIC_STATS_7B: AcademicStat[] = [
+  { category: 'XUẤT SẮC', count: 2, countDisplay: '02', unit: 'HS' },
+  { category: 'TỐT', count: 26, countDisplay: '26', unit: 'HS' },
+  { category: 'KHÁ', count: 25, countDisplay: '25', unit: 'HS' },
+  { category: 'ĐẠT', count: 3, countDisplay: '03', unit: 'HS' }
+];
+
+export const TOTAL_STUDENTS_7B = 56;
+
+// ── DIRECTIONS (5 phương hướng hoạt động) ─────────────────
 export const DIRECTIONS: string[] = [
   'HỌC TẬP CHỦ ĐỘNG — ỨNG DỤNG AI',
   'TIẾNG ANH — MỖI NGÀY MỘT BƯỚC TIẾN',
@@ -214,7 +246,7 @@ export const RULES: string[] = [
   'Mở đủ 9 mảnh ghép để giải mã Bức tranh Bí Mật Chi đội 7B'
 ];
 
-// ── SECRET IMAGE 3x3 PIECE MAPPINGS (UNTOUCHED) ──────────
+// ── SECRET IMAGE 3x3 PIECE MAPPINGS ──────────────────────
 export interface SecretPieceMapping {
   challengeId: number; // 1..9
   pieceIndex: number; // 0..8
@@ -238,6 +270,3 @@ export const SECRET_PIECE_MAPPINGS: SecretPieceMapping[] = [
 export function getPieceMapping(challengeId: number): SecretPieceMapping {
   return SECRET_PIECE_MAPPINGS[challengeId - 1] ?? SECRET_PIECE_MAPPINGS[0];
 }
-
-// ── SCENE 03 GATE ────────────────────────────────────────
-export const HAS_7B_DATA = false;

@@ -6,6 +6,7 @@
   import AudioDock from './components/AudioDock.svelte';
   import ProgressDots from './components/ProgressDots.svelte';
   import Opening from './scenes/Opening.svelte';
+  import Election from './scenes/Election.svelte';
   import Directions from './scenes/Directions.svelte';
   import Lobby from './scenes/Lobby.svelte';
   import Gameplay from './scenes/Gameplay.svelte';
@@ -15,13 +16,13 @@
   const H = 1080;
   let scale = $state(1);
   let sceneEl: HTMLElement | null = $state(null);
+  let electionRef: { step: (d: 1 | -1) => boolean; isLast: () => boolean } | null = $state(null);
   let directionsRef: { step: (d: 1 | -1) => boolean } | null = $state(null);
 
   function fit(): void {
     scale = Math.min(window.innerWidth / W, window.innerHeight / H);
   }
 
-  // rAF-throttled: resize storms collapse into one scale recompute.
   let rafId = 0;
   function onResize(): void {
     if (rafId) return;
@@ -36,49 +37,88 @@
     else void document.documentElement.requestFullscreen().catch(() => {});
   }
 
-  // Chặn bấm đôi vô tình (MC double-tap): primary cách nhau tối thiểu 500ms.
-  // Điều hướng directions-step (←/→) giữ nguyên nhịp nhanh có chủ ý.
   let lastPrimaryAt = 0;
-  function primary(): void {
+  function handlePrimaryAction(): void {
     const now = performance.now();
-    if (now - lastPrimaryAt < 500) return;
+    if (now - lastPrimaryAt < 250) return;
     lastPrimaryAt = now;
     audio.unlock();
+
     switch (pres.scene) {
       case 'opening':
-      case 'closing':
-        if (pres.scene === 'closing') {
-          audio.click();
-          pres.resetGame();
-        } else pres.next();
+        pres.next();
         break;
+
+      case 'election':
+        if (electionRef && !electionRef.step(1)) {
+          pres.next();
+        } else if (!electionRef) {
+          pres.next();
+        }
+        break;
+
       case 'directions':
-        if (directionsRef && !directionsRef.step(1)) pres.next();
+        if (directionsRef && !directionsRef.step(1)) {
+          pres.next();
+        } else if (!directionsRef) {
+          pres.next();
+        }
         break;
-      case 'lobby': {
-        const i = pres.status.findIndex((s) => s !== 'completed');
-        if (i >= 0) {
-          audio.click();
-          pres.openCell(i + 1);
-        } else pres.next();
+
+      case 'lobby':
+        if (pres.completedCount === 9) {
+          pres.next();
+        }
+        // In lobby before 9/9: DO NOT auto-pick node
         break;
-      }
+
       case 'game':
-        if (!pres.revealed) {
-          if (pres.active?.kind === 'lucky') return;
-          pres.reveal();
-          if (pres.active && !pres.active.checkable) {
-            audio.click();
-            pres.markResult('presented');
-          }
-        } else back();
+        if (pres.isPaused) {
+          pres.resumeGame();
+          return;
+        }
+        switch (pres.challengeState) {
+          case 'intro':
+            pres.setChallengeState('question');
+            break;
+          case 'wrong':
+            pres.retry();
+            break;
+          case 'timeout':
+            if (!pres.revealed) {
+              pres.reveal();
+            }
+            break;
+          case 'correct':
+          case 'reward':
+            pres.unlockPiece();
+            break;
+          case 'piece_unlock':
+          case 'complete':
+            pres.completeChallenge();
+            pres.backToLobby();
+            break;
+          default:
+            break;
+        }
+        break;
+
+      case 'closing':
+        audio.click();
+        pres.resetGame();
         break;
     }
   }
 
-  function back(): void {
+  function handleBackAction(): void {
     audio.unlock();
     audio.click();
+    if (pres.scene === 'game') {
+      pres.pauseGame();
+      return;
+    }
+    if (pres.scene === 'directions' && directionsRef?.step(-1)) return;
+    if (pres.scene === 'election' && electionRef?.step(-1)) return;
     pres.prev();
   }
 
@@ -86,28 +126,72 @@
     const tag = (document.activeElement?.tagName ?? '').toLowerCase();
     const typing = tag === 'input' || tag === 'textarea';
     audio.unlock();
+
     if (e.key === 'ArrowRight' && !typing) {
       e.preventDefault();
       if (pres.scene === 'directions' && directionsRef?.step(1)) return;
-      primary();
+      if (pres.scene === 'election' && electionRef?.step(1)) return;
+      handlePrimaryAction();
     } else if (e.key === 'ArrowLeft' && !typing) {
       e.preventDefault();
       if (pres.scene === 'directions' && directionsRef?.step(-1)) return;
-      back();
+      if (pres.scene === 'election' && electionRef?.step(-1)) return;
+      handleBackAction();
     } else if (e.key === 'Enter' && !typing) {
       e.preventDefault();
-      primary();
+      handlePrimaryAction();
     } else if (e.key === ' ' && !typing) {
       e.preventDefault();
-      primary();
+      handlePrimaryAction();
     } else if (e.key === 'Escape') {
-      pres.go('lobby');
+      if (pres.scene === 'game') {
+        pres.pauseGame();
+      }
     } else if ((e.key === 'f' || e.key === 'F') && !typing) {
       toggleFullscreen();
     } else if ((e.key === 'm' || e.key === 'M') && !typing) {
       audio.toggleMute();
     }
   }
+
+  // Dynamic label for primary dock button
+  let dockPrimaryText = $derived.by(() => {
+    if (pres.scene === 'opening') return 'BẮT ĐẦU →';
+    if (pres.scene === 'election') {
+      if (electionRef && electionRef.isLast()) return 'TIẾP TỤC →';
+      return 'TIẾP ỨNG CỬ VIÊN →';
+    }
+    if (pres.scene === 'directions') return 'TIẾP →';
+    if (pres.scene === 'lobby') {
+      return pres.completedCount === 9 ? 'XEM BỨC TRANH 🌟' : 'CHỌN Ô SỐ';
+    }
+    if (pres.scene === 'closing') return 'CHƠI LẠI ↺';
+    if (pres.scene === 'game') {
+      if (pres.isPaused) return 'TIẾP TỤC';
+      switch (pres.challengeState) {
+        case 'intro':
+          return 'HIỆN CÂU HỎI';
+        case 'question':
+        case 'answering':
+          return 'XÁC NHẬN';
+        case 'wrong':
+          return 'THỬ LẠI';
+        case 'retry':
+          return 'CHỌN ĐÁP ÁN';
+        case 'timeout':
+          return 'MỞ ĐÁP ÁN (MC)';
+        case 'correct':
+        case 'reward':
+          return 'NHẬN MẢNH GHÉP';
+        case 'piece_unlock':
+        case 'complete':
+          return 'VỀ BẢNG CHỌN Ô';
+        default:
+          return 'TIẾP →';
+      }
+    }
+    return 'TIẾP →';
+  });
 
   $effect(() => {
     const s: SceneId = pres.scene;
@@ -119,19 +203,21 @@
     }
     gsap.fromTo(
       sceneEl,
-      { opacity: 0, y: 18, scale: 0.985 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: 'power2.out', overwrite: true }
+      { opacity: 0, y: 16, scale: 0.988 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'power2.out', overwrite: true }
     );
   });
 
   onMount(() => {
     fit();
     window.addEventListener('resize', onResize);
+    window.addEventListener('fullscreenchange', onResize);
     window.addEventListener('keydown', onKey);
     const unlock = (): void => audio.unlock();
     window.addEventListener('pointerdown', unlock, { once: true });
     return () => {
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('fullscreenchange', onResize);
       if (rafId) window.cancelAnimationFrame(rafId);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('pointerdown', unlock);
@@ -155,6 +241,8 @@
       {#key pres.scene}
         {#if pres.scene === 'opening'}
           <Opening />
+        {:else if pres.scene === 'election'}
+          <Election bind:this={electionRef} />
         {:else if pres.scene === 'directions'}
           <Directions bind:this={directionsRef} />
         {:else if pres.scene === 'lobby'}
@@ -170,11 +258,11 @@
     <!-- Bottom Stage Dock for MC -->
     <footer class="stage-dock">
       <div class="nav-cluster">
-        <button class="dock-btn" onclick={back} aria-label="Lùi lại">
+        <button class="dock-btn" onclick={handleBackAction} aria-label="Lùi lại">
           <span>‹ Trước</span>
         </button>
-        <button class="dock-btn gold" onclick={primary} aria-label="Tiếp tục">
-          <span>Tiếp ›</span>
+        <button class="dock-btn gold" onclick={handlePrimaryAction} aria-label="Tiếp tục">
+          <span>{dockPrimaryText}</span>
         </button>
         <button class="dock-btn icon-only" onclick={toggleFullscreen} aria-label="Toàn màn hình" title="Toàn màn hình (F)">
           <span>⛶</span>
@@ -185,7 +273,7 @@
         <ProgressDots />
       {:else}
         <div class="stage-hint">
-          <span>← → Điều hướng · Enter Chọn · Esc Về bảng đố · F Toàn màn hình · M Nhạc</span>
+          <span>← → Điều hướng · Enter / Space Chọn · Esc Tạm dừng/Về bảng đố · F Toàn màn hình · M Nhạc</span>
         </div>
       {/if}
 

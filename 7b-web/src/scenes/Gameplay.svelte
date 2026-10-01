@@ -10,9 +10,8 @@
   import figLucky from '../assets/v2/gameplay/puzzle-lucky-chest.jpg';
 
   let picked: number | null = $state(null); // locked correct pick
-  let misses: number[] = $state([]); // wrong picks (dimmed, retry others)
+  let misses: number[] = $state([]); // wrong picks
   let timeLeft = $state(QUESTION_TIME_S);
-  let expired = $state(false);
   let timerId = 0;
   let lastWhole = QUESTION_TIME_S;
   let rewardCall: gsap.core.Tween | null = null;
@@ -24,19 +23,20 @@
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function stopTimer(): void {
-    window.clearInterval(timerId);
-    timerId = 0;
+    if (timerId) {
+      window.clearInterval(timerId);
+      timerId = 0;
+    }
   }
 
   function startTimer(): void {
     stopTimer();
     const t0 = performance.now();
     timeLeft = QUESTION_TIME_S;
-    expired = false;
     lastWhole = QUESTION_TIME_S;
-    // Wall-clock based: drain rate is physically correct no matter how many
-    // ticks fire (immune to interval pile-ups).
+
     timerId = window.setInterval(() => {
+      if (pres.isPaused) return; // Freeze timer if paused by MC
       const elapsed = (performance.now() - t0) / 1000;
       timeLeft = Math.max(0, Math.round((QUESTION_TIME_S - elapsed) * 10) / 10);
       const whole = Math.ceil(timeLeft);
@@ -46,19 +46,21 @@
       }
       if (timeLeft <= 0) {
         stopTimer();
-        expired = true; // MC vẫn chấm/confirm bình thường — không khóa state.
+        pres.setTimeoutState();
       }
     }, 100);
   }
 
-  // Reset + timer per question.
+  // Lifecycle per cell
   $effect(() => {
     picked = null;
     misses = [];
-    // read cell to track
     if (cell) {
-      if (cell.kind === 'quiz' && !pres.revealed) startTimer();
-      else stopTimer();
+      if (cell.kind === 'quiz' && !pres.revealed) {
+        startTimer();
+      } else {
+        stopTimer();
+      }
     }
     return () => stopTimer();
   });
@@ -69,12 +71,13 @@
     rewardCall = null;
   });
 
-  // Keys 1–4 select answers (no conflict: App ignores digits).
+  // Keys 1–4 select answers
   function onKey(e: KeyboardEvent): void {
-    if (pres.scene !== 'game' || !cell || cell.kind !== 'quiz' || pres.revealed) return;
+    if (pres.scene !== 'game' || pres.isPaused || !cell || cell.kind !== 'quiz' || pres.revealed) return;
     const n = ['1', '2', '3', '4'].indexOf(e.key);
     if (n >= 0) select(n);
   }
+
   onMount(() => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -84,7 +87,7 @@
     if (!cell || reducedMotion || !cardEl) return;
     try {
       const from = cardEl.getBoundingClientRect();
-      const prog = document.querySelector('.prog');
+      const prog = document.querySelector('.prog-mini') || document.querySelector('.dock-btn');
       const to = prog?.getBoundingClientRect();
       if (!to) return;
       const m = getPieceMapping(cell.id);
@@ -105,7 +108,7 @@
         onComplete: () => ghost.remove()
       });
     } catch {
-      // cosmetic only — never break game flow
+      // cosmetic only
     }
   }
 
@@ -116,26 +119,34 @@
       audio.fanfare();
     });
     flyPiece();
+    pres.unlockPiece();
   }
 
   function select(i: number): void {
-    if (!cell || cell.kind !== 'quiz' || pres.revealed || picked !== null) return;
+    if (!cell || cell.kind !== 'quiz' || pres.revealed || picked !== null || misses.includes(i)) return;
     audio.unlock();
+
     if (i === cell.correctIndex) {
       picked = i;
       audio.correct();
+      stopTimer();
       pres.reveal();
       pres.markResult('correct');
-      stopTimer();
       celebrate();
     } else {
       misses = [...misses, i];
       audio.wrong();
+      pres.setWrong();
       const beam = cardEl?.querySelector(`[data-beam="${i}"]`);
       if (beam && !reducedMotion) {
         gsap.fromTo(beam, { x: 0 }, { x: 12, duration: 0.06, repeat: 3, yoyo: true, overwrite: true });
       }
     }
+  }
+
+  function retryAnswer(): void {
+    audio.click();
+    pres.retry();
   }
 
   function revealManual(): void {
@@ -144,19 +155,33 @@
     pres.reveal();
     if (cell?.kind === 'lucky') {
       pres.markResult('lucky');
+      celebrate();
     } else {
-      pres.lastResult = 'presented';
+      pres.markResult('presented');
     }
   }
 
   function confirmCorrect(): void {
     audio.correct();
+    stopTimer();
     pres.confirmManualCorrect();
     celebrate();
   }
 
-  function back(): void {
+  function handleCompleteAndBack(): void {
     audio.click();
+    pres.completeChallenge();
+    pres.backToLobby();
+  }
+
+  function resumeChallenge(): void {
+    audio.click();
+    pres.resumeGame();
+  }
+
+  function returnToLobbyFromPause(): void {
+    audio.click();
+    stopTimer();
     pres.backToLobby();
   }
 </script>
@@ -181,7 +206,9 @@
             <span class="banner-icon">🧩</span>
             <span>ĐÃ MỞ KHÓA MẢNH GHÉP 0{cell.id} BỨC TRANH BÍ MẬT!</span>
           </div>
-          <button class="btn-back-board highlight" onclick={back}>‹ QUAY LẠI BẢNG ĐỐ</button>
+          <button class="btn-back-board highlight" onclick={handleCompleteAndBack}>
+            ‹ QUAY LẠI BẢNG CHỌN Ô
+          </button>
         </div>
         <div class="lucky-art">
           <img
@@ -198,10 +225,14 @@
         <div class="meta-row">
           <span class="chip">THỬ THÁCH 0{cell.id}</span>
           <span class="chip dim">{cell.chip}</span>
-          <span class="timer" class:urgent={timeLeft <= 5} class:done={expired || pres.revealed}>
+          <span
+            class="timer"
+            class:urgent={timeLeft <= 5 && !pres.revealed && pres.challengeState !== 'timeout'}
+            class:done={pres.challengeState === 'timeout' || pres.revealed}
+          >
             {#if pres.revealed}
-              <span>ĐÃ CHỐT</span>
-            {:else if expired}
+              <span>ĐÃ CHỐT ĐÁP ÁN</span>
+            {:else if pres.challengeState === 'timeout'}
               <span>HẾT GIỜ — MC CHỦ ĐỘNG</span>
             {:else}
               <span class="t-num">{Math.ceil(timeLeft)}</span><span class="t-unit">GIÂY</span>
@@ -220,7 +251,7 @@
               <button
                 class="beam"
                 data-beam={idx}
-                style={`animation-delay:${0.15 + idx * 0.09}s`}
+                style={`animation-delay:${0.12 + idx * 0.08}s`}
                 disabled={misses.includes(idx)}
                 onclick={() => select(idx)}
                 aria-label={`Đáp án ${op.label}: ${op.text}`}
@@ -231,11 +262,17 @@
               </button>
             {/each}
           </div>
-          {#if misses.length > 0}
-            <p class="retry">Chưa chính xác — THỬ LẠI đáp án khác.</p>
+
+          {#if pres.challengeState === 'wrong' || misses.length > 0}
+            <div class="feedback-box wrong">
+              <span class="fb-text">Chưa chính xác — Hãy chọn lại đáp án khác.</span>
+              <button class="btn-retry" onclick={retryAnswer}>THỬ LẠI</button>
+            </div>
           {/if}
+
           <div class="mc-row">
             <button class="ghost" onclick={revealManual}>Mở đáp án (MC)</button>
+            <button class="ghost pause-btn" onclick={() => pres.pauseGame()}>Tạm dừng (Esc)</button>
           </div>
         {:else}
           <div class="beams locked">
@@ -251,8 +288,10 @@
               </div>
             {/each}
           </div>
+
           <p class="expl">{cell.explanation}</p>
-          {#if pres.lastResult === 'correct'}
+
+          {#if pres.lastResult === 'correct' || pres.lastResult === 'lucky'}
             <div class="piece-unlocked-banner">
               <span class="banner-icon">🧩</span>
               <span>ĐÃ MỞ KHÓA MẢNH GHÉP 0{cell.id} BỨC TRANH BÍ MẬT!</span>
@@ -267,9 +306,39 @@
           {/if}
         {/if}
 
-        <button class="btn-back-board" class:highlight={pres.lastResult === 'correct' || pres.lastResult === 'lucky'} onclick={back}>
-          ‹ QUAY LẠI BẢNG ĐỐ
+        <button
+          class="btn-back-board"
+          class:highlight={pres.lastResult === 'correct' || pres.lastResult === 'lucky'}
+          onclick={handleCompleteAndBack}
+        >
+          ‹ QUAY LẠI BẢNG CHỌN Ô
         </button>
+      </div>
+    {/if}
+
+    <!-- ═══ MC ESCAPE / PAUSE OVERLAY (Esc) ═══ -->
+    {#if pres.isPaused}
+      <div class="mc-pause-overlay">
+        <div class="pause-card">
+          <div class="pause-header">
+            <span class="pause-badge">MC CONTROL</span>
+            <h3 class="pause-title">ĐANG TẠM DỪNG THỬ THÁCH</h3>
+            <p class="pause-subtitle">
+              Thử thách số 0{cell.id} · {cell.chip}
+            </p>
+          </div>
+          <div class="pause-actions">
+            <button class="btn-pause-resume" onclick={resumeChallenge}>
+              <span>TIẾP TỤC THỬ THÁCH</span>
+            </button>
+            <button class="btn-pause-lobby" onclick={returnToLobbyFromPause}>
+              <span>QUAY LẠI BẢNG CHỌN Ô</span>
+            </button>
+          </div>
+          <p class="pause-hint">
+            (Bảng đố sẽ lưu giữ nguyên các mảnh ghép đã hoàn thành)
+          </p>
+        </div>
       </div>
     {/if}
   </div>
@@ -286,7 +355,7 @@
     justify-content: center;
   }
 
-  /* ── MOTIF BACKGROUNDS (one global art direction, varied storytelling) ── */
+  /* ── MOTIF BACKGROUNDS ── */
   .motif-bg {
     position: absolute;
     inset: 0;
@@ -384,8 +453,8 @@
     max-width: calc(100% - var(--safe) * 2);
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    padding: 190px 0 130px;
+    gap: 20px;
+    padding: 170px 0 120px;
   }
   .meta-row {
     display: flex;
@@ -467,7 +536,7 @@
   }
   .question {
     font-family: var(--f-display);
-    font-size: 62px;
+    font-size: 60px;
     line-height: 1.25;
     font-weight: 400;
     color: var(--c-ink-100);
@@ -477,12 +546,12 @@
     white-space: pre-line;
   }
 
-  /* ── ANSWER BEAMS (not buttons-in-boxes) ── */
+  /* ── ANSWER BEAMS ── */
   .beams {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 18px 48px;
-    margin-top: 8px;
+    margin-top: 6px;
   }
   .beam {
     display: flex;
@@ -535,7 +604,7 @@
     transition: background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
   }
   .beam-text {
-    font-size: 40px;
+    font-size: 38px;
     font-weight: 700;
     line-height: 1.25;
   }
@@ -548,7 +617,6 @@
     border-radius: 8px;
     padding: 2px 12px;
   }
-  /* wrong pick: dim + coral marker, others stay live */
   .beam:disabled:not(.hit) .marker {
     border-color: var(--c-danger);
     color: var(--c-danger);
@@ -577,46 +645,68 @@
   .beams.locked .beam.miss {
     opacity: 0.4;
   }
-  .retry {
-    font-size: 28px;
+
+  .feedback-box {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 4px;
+  }
+  .feedback-box.wrong .fb-text {
+    font-size: 26px;
     font-weight: 800;
     color: var(--c-danger);
-    margin: 0;
   }
+  .btn-retry {
+    font-family: var(--f-body);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--c-ink-100);
+    background: rgba(240, 82, 77, 0.35);
+    border: 1.5px solid var(--c-danger);
+    border-radius: var(--r-pill);
+    padding: 6px 20px;
+    cursor: pointer;
+  }
+
   .expl {
-    font-size: 32px;
+    font-size: 30px;
     font-weight: 600;
     color: var(--c-ink-100);
     border-left: 5px solid var(--c-gold-400);
     padding-left: 24px;
-    margin: 6px 0 0;
+    margin: 4px 0 0;
     max-width: 1200px;
   }
 
   .ghost {
     font-family: var(--f-body);
     font-weight: 700;
-    font-size: 26px;
+    font-size: 24px;
     color: var(--c-ink-300);
     background: transparent;
     border: 2px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--r-pill);
-    padding: 12px 36px;
+    padding: 10px 32px;
     cursor: pointer;
+    transition: color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out);
   }
   .ghost:hover {
     color: var(--c-ink-100);
     border-color: var(--c-gold-400);
   }
   .mc-row {
-    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 6px;
   }
   .mc-decision-box {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-top: 14px;
-    padding-top: 12px;
+    margin-top: 12px;
+    padding-top: 10px;
     border-top: 1px dashed rgba(255, 255, 255, 0.2);
   }
   .mc-label {
@@ -638,15 +728,15 @@
   }
   .btn-back-board {
     align-self: flex-start;
-    margin-top: 10px;
+    margin-top: 8px;
     font-family: var(--f-body);
     font-weight: 700;
-    font-size: 28px;
+    font-size: 26px;
     color: var(--c-ink-100);
     background: transparent;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--r-pill);
-    padding: 14px 44px;
+    padding: 12px 40px;
     cursor: pointer;
   }
   .btn-back-board:hover {
@@ -659,7 +749,7 @@
     font-weight: 800;
   }
 
-  /* ── Piece fly ghost (reward travel) ── */
+  /* ── Piece fly ghost ── */
   :global(.fly-piece) {
     position: fixed;
     width: 120px;
@@ -753,5 +843,100 @@
   }
   .banner-icon {
     font-size: 28px;
+  }
+
+  /* ── MC PAUSE OVERLAY ── */
+  .mc-pause-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background: rgba(4, 11, 28, 0.85);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.25s var(--e-out);
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .pause-card {
+    background: rgba(13, 29, 69, 0.95);
+    border: 2px solid var(--c-spot-cyan);
+    border-radius: var(--r-lg);
+    padding: 44px 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(0, 229, 255, 0.3);
+    max-width: 640px;
+  }
+  .pause-badge {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: var(--c-spot-cyan);
+    border: 1px solid var(--c-spot-cyan);
+    border-radius: var(--r-pill);
+    padding: 4px 16px;
+  }
+  .pause-title {
+    font-family: var(--f-display);
+    font-size: 42px;
+    color: #ffffff;
+    margin: 8px 0 4px;
+  }
+  .pause-subtitle {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--c-gold-400);
+    margin: 0;
+  }
+  .pause-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-pause-resume {
+    font-family: var(--f-body);
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--c-ink-900);
+    background: linear-gradient(135deg, var(--c-gold-core), var(--c-gold-500));
+    border: none;
+    border-radius: var(--r-pill);
+    padding: 16px 36px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255, 196, 37, 0.4);
+    transition: transform var(--t-fast) var(--e-out);
+  }
+  .btn-pause-resume:hover {
+    transform: scale(1.02);
+  }
+  .btn-pause-lobby {
+    font-family: var(--f-body);
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--c-ink-100);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--r-pill);
+    padding: 14px 36px;
+    cursor: pointer;
+    transition: background-color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out);
+  }
+  .btn-pause-lobby:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: var(--c-spot-cyan);
+  }
+  .pause-hint {
+    font-size: 15px;
+    color: var(--c-ink-300);
+    margin: 0;
   }
 </style>
